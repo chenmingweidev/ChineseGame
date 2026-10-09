@@ -299,7 +299,8 @@
     // 1.1 SUPABASE CLOUD & REALTIME DATABASE ENGINE
     // ==========================================
     const SUPABASE_PROJECT_URL = 'https://rokompsjfgpvukhwylwp.supabase.co';
-    let supabaseKey = localStorage.getItem('cn_supabase_anon_key') || '';
+    const HARDCODED_SUPABASE_KEY = 'sb_publishable_pp6xVmp7eOR3MD0MopQ0Ug_0o6n3XH0';
+    let supabaseKey = localStorage.getItem('cn_supabase_anon_key') || HARDCODED_SUPABASE_KEY;
     let supabaseClient = null;
     let isCloudConnected = false;
 
@@ -505,6 +506,110 @@
       setTimeout(() => {
         pullFromCloud(false);
       }, 500);
+    }
+
+    // ==========================================
+    // 1.2 ACCOUNT PROFILE (CHANGE NAME & PASSWORD)
+    // ==========================================
+    function openProfileModal() {
+      if (!currentUser) return;
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/85 backdrop-blur-md z-50 flex items-center justify-center p-4 fade-in">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-white/20 pop-in space-y-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center gap-2.5">
+                <span class="text-2xl">👤</span>
+                <div>
+                  <h3 class="text-lg font-black text-slate-800">Cài Đặt Tài Khoản</h3>
+                  <p class="text-xs text-slate-500">Đổi họ tên và mật khẩu đăng nhập của bạn</p>
+                </div>
+              </div>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <form onsubmit="handleSaveProfile(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tên Đăng Nhập / Bí Danh (Không thể đổi)</label>
+                <input type="text" readonly value="@${currentUser.username}" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 font-mono text-xs font-bold text-slate-600 outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Họ và Tên Thật</label>
+                <input type="text" id="inputProfileFullName" required value="${currentUser.fullName}" placeholder="Nhập họ và tên..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                <p class="text-[11px] text-slate-400 mt-1 italic">💡 Tên thật chỉ giảng viên thấy được trong sổ điểm. Trên bảng thành tích chỉ hiện bí danh.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật Khẩu Mới</label>
+                <input type="password" id="inputProfilePassword" required value="${currentUser.password}" placeholder="Nhập mật khẩu mới..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Xác Nhận Mật Khẩu</label>
+                <input type="password" id="inputProfilePasswordConfirm" required value="${currentUser.password}" placeholder="Nhập lại mật khẩu mới..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+              </div>
+
+              <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs shadow-md hover:opacity-95 transition-all">
+                  💾 Lưu Thay Đổi
+                </button>
+                <button type="button" onclick="document.getElementById('modalHost').innerHTML=''" class="px-5 py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition-all">
+                  Huỷ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleSaveProfile(e) {
+      e.preventDefault();
+      const newName = document.getElementById('inputProfileFullName').value.trim();
+      const newPass = document.getElementById('inputProfilePassword').value.trim();
+      const newPassConfirm = document.getElementById('inputProfilePasswordConfirm').value.trim();
+
+      if (!newName) {
+        alert('Vui lòng nhập họ và tên!');
+        return;
+      }
+      if (!newPass) {
+        alert('Vui lòng nhập mật khẩu!');
+        return;
+      }
+      if (newPass !== newPassConfirm) {
+        alert('Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.');
+        return;
+      }
+
+      // Update current user
+      currentUser.fullName = newName;
+      currentUser.password = newPass;
+      sessionStorage.setItem('cn_current_user', JSON.stringify(currentUser));
+
+      // Update local db
+      db = loadDB();
+      const uIdx = db.users.findIndex(u => u.id === currentUser.id);
+      if (uIdx !== -1) {
+        db.users[uIdx].fullName = newName;
+        db.users[uIdx].password = newPass;
+        saveDB(db);
+      }
+
+      // Update cloud Supabase
+      if (supabaseClient) {
+        supabaseClient.from('chinese_users').update({
+          full_name: newName,
+          password: newPass
+        }).eq('id', currentUser.id).then(() => {
+          console.log('Profile synced to Supabase Cloud!');
+        });
+      }
+
+      document.getElementById('modalHost').innerHTML = '';
+      showToast('Đã cập nhật Họ tên và Mật khẩu thành công!', '🎉');
+      renderApp();
     }
 
     // ==========================================
@@ -769,14 +874,17 @@
 
             <div class="flex items-center gap-2 self-end md:self-auto flex-wrap">
               ${renderCloudStatusButton()}
+              <button onclick="openProfileModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm" title="Đổi họ tên và mật khẩu của bạn">
+                <span>👤</span> Đổi Tên & Mật Khẩu
+              </button>
               <button onclick="openCreateTestModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs sm:text-sm hover:opacity-95 shadow-md flex items-center gap-2 transition-all">
                 <span>➕</span> Soạn Bài Test Mới
               </button>
               <button onclick="openAddStudentModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-slate-800 shadow-md flex items-center gap-2 transition-all">
                 <span>👤</span> Thêm Học Viên
               </button>
-              <button onclick="logout()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all" title="Đăng xuất">
-                🚪
+              <button onclick="logout()" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-sm" title="Đăng xuất khỏi hệ thống">
+                <span class="text-base">🚪</span> Đăng Xuất
               </button>
             </div>
           </div>
@@ -1056,13 +1164,16 @@
               </div>
 
               <!-- ACTION SHORTCUTS -->
-              <div class="flex items-center gap-3 flex-wrap">
+              <div class="flex items-center gap-2.5 flex-wrap">
                 ${renderCloudStatusButton()}
+                <button onclick="openProfileModal()" class="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm" title="Đổi họ tên và mật khẩu của bạn">
+                  <span>👤</span> Đổi Tên & Mật Khẩu
+                </button>
                 <button onclick="openVocabArena()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-sm shadow-lg shadow-rose-500/20 hover:opacity-95 transition-all flex items-center gap-2">
                   <span>🎮</span> Chơi Game & Luyện Từ
                 </button>
-                <button onclick="logout()" class="p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all" title="Đăng xuất">
-                  🚪
+                <button onclick="logout()" class="px-5 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-sm" title="Đăng xuất khỏi hệ thống">
+                  <span class="text-base">🚪</span> Đăng Xuất
                 </button>
               </div>
 
@@ -1224,7 +1335,7 @@
           <div class="pb-4 border-b border-slate-100 flex items-center justify-between">
             <div>
               <h2 class="text-lg font-black text-slate-800">Bảng Vàng Vinh Danh &bull; Cấp Độ ${currentUser.level}</h2>
-              <p class="text-xs text-slate-500">Thi đua tích luỹ điểm EXP từ các bài mini test và mini game hàng ngày</p>
+              <p class="text-xs text-slate-500">Thi đua tích luỹ điểm EXP &bull; <span class="font-bold text-slate-600">Bảo mật: Chỉ hiển thị Bí danh (@username), Tên thật chỉ Giảng viên thấy</span></p>
             </div>
             <span class="text-2xl">🏆</span>
           </div>
@@ -1239,12 +1350,13 @@
                     <div class="w-8 text-center font-black text-lg ${idx < 3 ? 'text-2xl' : 'text-slate-400'}">
                       ${medals[idx] || (idx + 1)}
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black">
-                      ${user.fullName.charAt(0)}
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-800 to-slate-900 text-amber-400 flex items-center justify-center font-black text-sm shadow-sm">
+                      ${user.username.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        ${user.fullName} ${isMe ? '<span class="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full">Bạn</span>' : ''}
+                        <span class="font-mono text-slate-800">@${user.username}</span>
+                        ${isMe ? `<span class="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">Bạn (${user.fullName})</span>` : ''}
                       </div>
                       <div class="text-xs text-slate-400">🔥 Chuỗi: ${user.streak || 0} ngày</div>
                     </div>
@@ -1318,8 +1430,8 @@
               <div class="px-4 py-2 rounded-2xl bg-slate-900 text-amber-400 font-mono font-black text-base shadow-sm" id="testTimerDisplay">
                 --:--
               </div>
-              <button onclick="confirmExitTest()" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition-colors">
-                Thoát
+              <button onclick="confirmExitTest()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm">
+                <span>🚪</span> Thoát bài thi
               </button>
             </div>
           </div>
