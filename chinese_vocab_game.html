@@ -1,1381 +1,2187 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>中文词汇大师 - Chinese Vocab Master</title>
+  <title>中文词汇大师 - Chinese Vocab Master & LMS Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-    @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
-    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 200px; } }
-    @keyframes confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-150px) rotate(720deg); opacity: 0; } }
-    @keyframes flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
-    @keyframes glow { 0%,100% { box-shadow: 0 0 5px rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 20px rgba(59,130,246,0.6); } }
-    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    .fade-in { animation: fadeIn 0.4s ease-out; }
-    .shake { animation: shake 0.4s ease-out; }
-    .pop { animation: pop 0.3s ease-out; }
-    .slide-down { animation: slideDown 0.4s ease-out; }
-    .confetti-particle { animation: confetti 1s ease-out forwards; position: absolute; }
-    .flip-card { animation: flip 0.6s ease-out; }
-    .glow-effect { animation: glow 2s infinite; }
-    .bounce-effect { animation: bounce 0.5s ease-out; }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-    .progress-bar { transition: width 0.5s ease-out; }
-    .hanzi-large { font-size: 4rem; line-height: 1.2; }
-    .hanzi-medium { font-size: 2.5rem; line-height: 1.2; }
-    .hanzi-small { font-size: 1.5rem; line-height: 1.2; }
-    .timer-pulse { animation: glow 1s infinite; }
-    @keyframes floatUp { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -150px) scale(1.5); opacity: 0; } }
-    .float-text { animation: floatUp 1s ease-out forwards; position: fixed; top: 50%; left: 50%; z-index: 100; pointer-events: none; }
-    body { overflow-x: hidden; background-color: #f8fafc; color: #0f172a; }
-    .game-container { min-height: calc(100vh - 40px); }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+    .hanzi-font {
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes floatUp {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -140px) scale(1.4); opacity: 0; }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+    }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .pop-in { animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .float-text { animation: floatUp 0.9s ease-out forwards; position: fixed; top: 50%; left: 50%; z-index: 100; pointer-events: none; }
+    .shake { animation: shake 0.4s ease-in-out; }
+    .timer-alert { animation: pulseGlow 1s infinite; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+    }
+    .hanzi-huge { font-size: 3.5rem; line-height: 1.1; }
+    .hanzi-large { font-size: 2.75rem; line-height: 1.2; }
+    .hanzi-medium { font-size: 2rem; line-height: 1.2; }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="antialiased p-3 relative">
+<body class="bg-slate-900 text-slate-800 antialiased selection:bg-rose-500 selection:text-white">
 
-  <!-- App Container -->
-  <div id="app" class="max-w-5xl mx-auto game-container">
+  <!-- TOP NOTIFICATION BANNER -->
+  <div id="toastNotification" class="fixed top-4 right-4 z-50 transform translate-y-[-150%] transition-transform duration-300 pointer-events-none max-w-md">
+    <div id="toastInner" class="bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 pointer-events-auto">
+      <span id="toastIcon" class="text-xl">🔔</span>
+      <div id="toastMessage" class="text-sm font-semibold">Thông báo</div>
+    </div>
+  </div>
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-4">
+  <!-- MAIN APP CONTAINER -->
+  <div id="appContainer" class="min-h-screen flex flex-col justify-between">
+    
+    <!-- DYNAMIC ROUTE VIEWS INSERTED HERE VIA JS -->
+    <main id="appView" class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6"></main>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-7xl mx-auto px-6 py-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-800">
+      <div>中文词汇大师 &middot; Hệ Thống Học Tiếng Trung & Quản Lý Học Viên E-Learning</div>
       <div class="flex items-center gap-3">
-        <div class="text-3xl">🀄</div>
-        <div>
-          <h1 class="text-2xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">中文词汇大师</h1>
-          <p class="text-sm text-gray-500">Chinese Vocabulary Master</p>
-        </div>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Hệ Thống Trực Tuyến
+        </span>
+        <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fchenmingweidev.github.io%2FChineseGame%2Fchinese_vocab_game.html&count_bg=%23e11d48&title_bg=%231e293b&title=L%C6%B0%E1%BB%A3t+truy+c%E1%BA%ADp&edge_flat=true" alt="Lượt truy cập" class="h-4 opacity-80" />
       </div>
-      <div id="statsHeader" class="flex items-center gap-4 text-sm">
-        <div class="flex items-center gap-1">📚 <span id="totalWords">0</span> từ</div>
-        <div class="flex items-center gap-1">🔥 <span id="streak">0</span> streak</div>
-        <div class="flex items-center gap-1">⭐ <span id="totalScore">0</span> điểm</div>
-      </div>
-    </div>
+    </footer>
+  </div>
 
-    <!-- Data Import Section -->
-    <div id="importSection" class="bg-white border border-gray-200 shadow-sm rounded-xl p-6 mb-4 fade-in">
-      <h2 class="text-lg font-semibold mb-3">📂 Nạp dữ liệu từ vựng</h2>
-      <p class="text-sm text-gray-500 mb-4">
-        Chọn file Excel (.xlsx) hoặc CSV/TSV. Định dạng cột (có thể linh hoạt): STT | Hán tự | Pinyin | Loại từ | Nghĩa | Ví dụ...
-      </p>
-      <div class="flex flex-wrap gap-3 items-center">
-        <label class="cursor-pointer bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-          📁 Chọn file dữ liệu
-          <input type="file" id="fileInput" accept=".csv,.tsv,.txt,.xlsx,.xls" class="hidden">
-        </label>
-        <button onclick="loadSampleData()" class="border border-gray-300 px-5 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-          🎯 Dùng dữ liệu mẫu
-        </button>
-        <span id="fileStatus" class="text-sm text-gray-500 font-medium"></span>
-      </div>
-      <div id="importPreview" class="mt-4 hidden"></div>
-    </div>
+  <!-- MODALS CONTAINER -->
+  <div id="modalHost"></div>
 
-    <!-- Game Selection Menu -->
-    <div id="gameMenu" class="hidden fade-in">
-      
-      <!-- Filter & Options -->
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div class="flex flex-wrap gap-2">
-          <button onclick="setFilter('all')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="all">📋 Tất cả</button>
-          <button onclick="setFilter('动词')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="动词">🏃 Động từ</button>
-          <button onclick="setFilter('名词')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="名词">📦 Danh từ</button>
-          <button onclick="setFilter('形容词')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="形容词">🌈 Tính từ</button>
-          <button onclick="setFilter('副词')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="副词">⚡ Phó từ</button>
-          <button onclick="setFilter('weak')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors" data-filter="weak">❌ Từ hay sai</button>
-        </div>
-        
-        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-          <span class="text-sm font-medium text-gray-700">🔤 Hiện Pinyin:</span>
-          <button id="pinyinToggleBtn" onclick="togglePinyin()" class="bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-bold transition-all hover:opacity-90">BẬT</button>
-        </div>
-      </div>
+  <!-- CORE JAVASCRIPT APPLICATION -->
+  <script>
+    // ==========================================
+    // 1. DATABASE & INITIAL SEEDING ENGINE (LMS_DB)
+    // ==========================================
+    const DB_KEY = 'cn_lms_database_v2';
 
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold">🎮 Chọn trò chơi</h2>
-        <div id="wordCountInfo" class="text-sm text-gray-500 font-medium"></div>
-      </div>
+    const defaultDatabase = {
+      users: [
+        {
+          id: 'u_admin',
+          username: 'admin',
+          password: '123',
+          fullName: 'Thầy Chen (Quản Lý)',
+          role: 'admin',
+          level: 'ALL',
+          exp: 9999,
+          streak: 30,
+          currentFile: null,
+          vocabStats: {},
+          createdAt: '2026-10-01'
+        },
+        {
+          id: 'u_hv1',
+          username: 'hocvien1',
+          password: '123',
+          fullName: 'Nguyễn Minh Trí',
+          role: 'student',
+          level: 'HSK1',
+          exp: 340,
+          streak: 4,
+          currentFile: {
+            fileName: 'HSK1_CoBan_Mau.xlsx',
+            wordCount: 10,
+            words: [
+              { hanzi: '你好', pinyin: 'nǐ hǎo', type: 'Chào hỏi', meaning: 'Xin chào', exampleCN: '你好，很高兴认识你。', exampleVN: 'Xin chào, rất vui được quen biết bạn.' },
+              { hanzi: '谢谢', pinyin: 'xiè xie', type: 'Động từ', meaning: 'Cảm ơn', exampleCN: '谢谢你的帮助。', exampleVN: 'Cảm ơn sự giúp đỡ của bạn.' },
+              { hanzi: '再见', pinyin: 'zài jiàn', type: 'Chào hỏi', meaning: 'Tạm biệt', exampleCN: '明天见，再见！', exampleVN: 'Ngày mai gặp lại, tạm biệt!' },
+              { hanzi: '中国', pinyin: 'zhōng guó', type: 'Danh từ', meaning: 'Trung Quốc', exampleCN: '我想去中国旅游。', exampleVN: 'Tôi muốn đi du lịch Trung Quốc.' },
+              { hanzi: '朋友', pinyin: 'péng you', type: 'Danh từ', meaning: 'Bạn bè', exampleCN: '他是我的好朋友。', exampleVN: 'Anh ấy là bạn thân của tôi.' },
+              { hanzi: '老师', pinyin: 'lǎo shī', type: 'Danh từ', meaning: 'Giáo viên', exampleCN: '王老师好！', exampleVN: 'Chào thầy Vương!' },
+              { hanzi: '学生', pinyin: 'xué sheng', type: 'Danh từ', meaning: 'Học sinh', exampleCN: '我们都是大学学生。', exampleVN: 'Chúng tôi đều là sinh viên đại học.' },
+              { hanzi: '喝水', pinyin: 'hē shuǐ', type: 'Cụm từ', meaning: 'Uống nước', exampleCN: '请喝水。', exampleVN: 'Mời uống nước.' },
+              { hanzi: '吃苹果', pinyin: 'chī píng guǒ', type: 'Cụm từ', meaning: 'Ăn táo', exampleCN: '我喜欢吃苹果。', exampleVN: 'Tôi thích ăn táo.' },
+              { hanzi: '很高兴', pinyin: 'hěn gāo xìng', type: 'Tính từ', meaning: 'Rất vui', exampleCN: '今天我很高兴。', exampleVN: 'Hôm nay tôi rất vui.' }
+            ]
+          },
+          vocabStats: { '你好': { correct: 5, wrong: 0, seen: 5 }, '谢谢': { correct: 3, wrong: 1, seen: 4 } },
+          badges: ['first_test', 'vocab_pro'],
+          createdAt: '2026-10-02'
+        },
+        {
+          id: 'u_hv2',
+          username: 'hocvien2',
+          password: '123',
+          fullName: 'Trần Thị Thu Thảo',
+          role: 'student',
+          level: 'HSK2',
+          exp: 620,
+          streak: 7,
+          currentFile: null,
+          vocabStats: {},
+          badges: ['first_test', 'perfect_score', 'streak_7'],
+          createdAt: '2026-10-03'
+        },
+        {
+          id: 'u_hv3',
+          username: 'hocvien3',
+          password: '123',
+          fullName: 'Lê Hoàng Long',
+          role: 'student',
+          level: 'HSK3',
+          exp: 890,
+          streak: 12,
+          currentFile: null,
+          vocabStats: {},
+          badges: ['first_test', 'perfect_score'],
+          createdAt: '2026-10-04'
+        }
+      ],
+      tests: [
+        {
+          id: 'test_1',
+          title: 'Mini Test HSK 1: Kiểm Tra Từ Vựng & Giao Tiếp Cơ Bản',
+          level: 'HSK1',
+          durationMinutes: 10,
+          targetType: 'LEVEL',
+          targetLevel: 'HSK1',
+          createdAt: '2026-10-05',
+          questions: [
+            {
+              id: 'q1',
+              type: 'mcq',
+              prompt: 'Hán tự "你好" có nghĩa là gì trong tiếng Việt?',
+              pinyin: 'nǐ hǎo',
+              options: ['Cảm ơn', 'Xin chào', 'Tạm biệt', 'Xin lỗi'],
+              answer: 'Xin chào',
+              explanation: '"你好" (nǐ hǎo) là lời chào hỏi cơ bản nhất trong tiếng Trung.'
+            },
+            {
+              id: 'q2',
+              type: 'mcq',
+              prompt: 'Từ nào sau đây có nghĩa là "Giáo viên"?',
+              pinyin: 'lǎo shī',
+              options: ['学生', '朋友', '老师', '医生'],
+              answer: '老师',
+              explanation: '"老师" (lǎo shī) nghĩa là thầy cô giáo.'
+            },
+            {
+              id: 'q3',
+              type: 'fill',
+              prompt: 'Điền từ còn thiếu vào câu: "我是大学_____ (học sinh/sinh viên)"',
+              hint: 'xué sheng',
+              answer: '学生',
+              explanation: '"学生" (xué sheng) ghép với 大学 thành sinh viên đại học.'
+            },
+            {
+              id: 'q4',
+              type: 'arrange',
+              prompt: 'Sắp xếp các từ sau thành câu hoàn chỉnh: "Tôi thích ăn táo"',
+              parts: ['我', '喜欢', '吃', '苹果'],
+              answer: '我 喜欢 吃 苹果',
+              explanation: 'Cấu trúc: Chủ ngữ (我) + Động từ tâm lý (喜欢) + Động từ (吃) + Tân ngữ (苹果).'
+            }
+          ]
+        },
+        {
+          id: 'test_2',
+          title: 'Mini Test HSK 2: Ngữ Pháp & Mẫu Câu Thực Hành',
+          level: 'HSK2',
+          durationMinutes: 15,
+          targetType: 'LEVEL',
+          targetLevel: 'HSK2',
+          createdAt: '2026-10-06',
+          questions: [
+            {
+              id: 'q2_1',
+              type: 'mcq',
+              prompt: 'Nghĩa của câu "今天天气怎么样？" là gì?',
+              options: ['Hôm nay bạn đi đâu?', 'Thời tiết hôm nay thế nào?', 'Hôm nay mấy giờ rồi?', 'Hôm nay ăn gì?'],
+              answer: 'Thời tiết hôm nay thế nào?',
+              explanation: '"天气" là thời tiết, "怎么样" là thế nào.'
+            },
+            {
+              id: 'q2_2',
+              type: 'fill',
+              prompt: 'Điền từ vào chỗ trống: "他_____在听音乐。" (đang)',
+              hint: 'zhèng / zhèngzài',
+              answer: '正在',
+              explanation: '"正在" biểu thị hành động đang diễn ra.'
+            },
+            {
+              id: 'q2_3',
+              type: 'arrange',
+              prompt: 'Sắp xếp thành câu đúng: "Anh ấy chạy rất nhanh"',
+              parts: ['他', '跑', '得', '很快'],
+              answer: '他 跑 得 很快',
+              explanation: 'Cấu trúc bổ ngữ chỉ trình độ: Động từ + 得 + Tính từ.'
+            }
+          ]
+        }
+      ],
+      submissions: [
+        {
+          id: 'sub_1',
+          testId: 'test_1',
+          studentId: 'u_hv1',
+          studentName: 'Nguyễn Minh Trí',
+          level: 'HSK1',
+          score: 75,
+          totalQuestions: 4,
+          correctCount: 3,
+          submittedAt: '2026-10-06 14:30',
+          details: [
+            { qIndex: 0, studentAnswer: 'Xin chào', correct: true },
+            { qIndex: 1, studentAnswer: '老师', correct: true },
+            { qIndex: 2, studentAnswer: '同学', correct: false, correctAnswer: '学生' },
+            { qIndex: 3, studentAnswer: '我 喜欢 吃 苹果', correct: true }
+          ]
+        }
+      ]
+    };
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Game 1: Flashcard -->
-        <div onclick="startGame('flashcard')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">🃏</div>
-          <h3 class="font-semibold mb-1">Flashcard</h3>
-          <p class="text-sm text-gray-500">Lật thẻ học từ vựng với hệ thống lặp lại ngắt quãng</p>
-          <div class="mt-2 text-sm font-medium text-green-500">Dễ</div>
-        </div>
+    function loadDB() {
+      try {
+        const raw = localStorage.getItem(DB_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {
+        console.error('Failed to parse DB, resetting to default', e);
+      }
+      saveDB(defaultDatabase);
+      return defaultDatabase;
+    }
 
-        <!-- Game 2: Multiple Choice -->
-        <div onclick="startGame('quiz')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">✅</div>
-          <h3 class="font-semibold mb-1">Trắc nghiệm</h3>
-          <p class="text-sm text-gray-500">Chọn nghĩa đúng từ 4 đáp án</p>
-          <div class="mt-2 text-sm font-medium text-green-500">Dễ</div>
-        </div>
+    function saveDB(data) {
+      localStorage.setItem(DB_KEY, JSON.stringify(data));
+    }
 
-        <!-- Game 3: Matching -->
-        <div onclick="startGame('matching')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">🔗</div>
-          <h3 class="font-semibold mb-1">Nối từ</h3>
-          <p class="text-sm text-gray-500">Nối Hán tự với nghĩa tiếng Việt</p>
-          <div class="mt-2 text-sm font-medium text-yellow-500">Trung bình</div>
-        </div>
+    let db = loadDB();
 
-        <!-- Game 4: Typing -->
-        <div onclick="startGame('typing')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">⌨️</div>
-          <h3 class="font-semibold mb-1">Gõ Pinyin</h3>
-          <p class="text-sm text-gray-500">Nhìn Hán tự, gõ đúng Pinyin</p>
-          <div class="mt-2 text-sm font-medium text-yellow-500">Trung bình</div>
-        </div>
+    // ==========================================
+    // 2. AUDIO SYNTHESIZER (SOUND EFFECTS)
+    // ==========================================
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
 
-        <!-- Game 5: Speed Round -->
-        <div onclick="startGame('speed')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">⏱️</div>
-          <h3 class="font-semibold mb-1">Tốc độ</h3>
-          <p class="text-sm text-gray-500">Trả lời nhanh nhất có thể trong 60 giây</p>
-          <div class="mt-2 text-sm font-medium text-red-500">Khó</div>
-        </div>
+    function playSound(type) {
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-        <!-- Game 6: Listen & Choose -->
-        <div onclick="startGame('listen')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">👂</div>
-          <h3 class="font-semibold mb-1">Nghe & Chọn</h3>
-          <p class="text-sm text-gray-500">Nghe phát âm, chọn từ đúng</p>
-          <div class="mt-2 text-sm font-medium text-yellow-500">Trung bình</div>
-        </div>
+        if (type === 'correct') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'victory') {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.2, now + i * 0.1);
+            g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+            o.start(now + i * 0.1);
+            o.stop(now + i * 0.1 + 0.3);
+          });
+        }
+      } catch (e) {
+        console.warn('Audio play error', e);
+      }
+    }
 
-        <!-- Game 7: Fill in Blank -->
-        <div onclick="startGame('fillblank')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">📝</div>
-          <h3 class="font-semibold mb-1">Điền từ</h3>
-          <p class="text-sm text-gray-500">Điền từ còn thiếu vào câu ví dụ</p>
-          <div class="mt-2 text-sm font-medium text-red-500">Khó</div>
-        </div>
+    function speakChinese(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN';
+        u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+      }
+    }
 
-        <!-- Game 8: Memory Game -->
-        <div onclick="startGame('memory')" class="card-hover cursor-pointer bg-white border border-gray-200 shadow-sm rounded-xl p-5 text-center">
-          <div class="text-4xl mb-3">🧠</div>
-          <h3 class="font-semibold mb-1">Trí nhớ</h3>
-          <p class="text-sm text-gray-500">Lật và ghép cặp Hán tự - Nghĩa</p>
-          <div class="mt-2 text-sm font-medium text-yellow-500">Trung bình</div>
-        </div>
-      </div>
+    // ==========================================
+    // 3. UI HELPERS & NOTIFICATIONS
+    // ==========================================
+    function showToast(msg, icon = '✅') {
+      const el = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      document.getElementById('toastIcon').textContent = icon;
+      el.classList.remove('translate-y-[-150%]');
+      setTimeout(() => el.classList.add('translate-y-[-150%]'), 3000);
+    }
 
-      <!-- Stats Overview -->
-      <div class="mt-6 bg-white border border-gray-200 shadow-sm rounded-xl p-5">
-        <h3 class="font-semibold mb-3 flex items-center justify-between">
-          <span>📊 Thống kê học tập</span>
-          <button onclick="openWordBank('all')" class="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors">📖 Xem Kho Từ</button>
-        </h3>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-          <div onclick="openWordBank('mastered')" class="cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition-colors">
-            <div class="text-2xl font-bold text-green-500" id="statLearned">0</div>
-            <div class="text-sm text-gray-500">Đã thuộc</div>
+    function showFloatScore(text, color = 'text-emerald-400') {
+      const el = document.createElement('div');
+      el.className = `float-text text-4xl font-black ${color} drop-shadow-lg`;
+      el.textContent = text;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 950);
+    }
+
+    // ==========================================
+    // 4. AUTHENTICATION & ROUTE CONTROLLER
+    // ==========================================
+    let currentUser = null;
+    let currentRoute = 'login'; // 'login' | 'manager' | 'student' | 'test_runner' | 'game_arena'
+    let activeTestInstance = null;
+    let activeArenaGame = null;
+
+    // Check stored session
+    function checkSession() {
+      const savedUser = sessionStorage.getItem('cn_current_user');
+      if (savedUser) {
+        try {
+          const userObj = JSON.parse(savedUser);
+          // Refresh from DB
+          const found = db.users.find(u => u.id === userObj.id);
+          if (found) {
+            currentUser = found;
+            currentRoute = found.role === 'admin' ? 'manager' : 'student';
+          }
+        } catch (e) {
+          sessionStorage.removeItem('cn_current_user');
+        }
+      }
+      renderApp();
+    }
+
+    function setSession(user) {
+      currentUser = user;
+      sessionStorage.setItem('cn_current_user', JSON.stringify(user));
+      currentRoute = user.role === 'admin' ? 'manager' : 'student';
+      renderApp();
+      showToast(`Chào mừng ${user.fullName}!`, '👋');
+    }
+
+    function logout() {
+      currentUser = null;
+      sessionStorage.removeItem('cn_current_user');
+      currentRoute = 'login';
+      activeTestInstance = null;
+      activeArenaGame = null;
+      renderApp();
+      showToast('Đã đăng xuất tài khoản.', '🔒');
+    }
+
+    // Quick demo login
+    function quickLogin(username) {
+      db = loadDB();
+      const user = db.users.find(u => u.username === username);
+      if (user) setSession(user);
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const userVal = document.getElementById('loginUsername').value.trim();
+      const passVal = document.getElementById('loginPassword').value.trim();
+      db = loadDB();
+      const match = db.users.find(u => u.username.toLowerCase() === userVal.toLowerCase() && u.password === passVal);
+      if (match) {
+        setSession(match);
+      } else {
+        document.getElementById('loginError').classList.remove('hidden');
+        playSound('wrong');
+      }
+    }
+
+    // ==========================================
+    // 5. VIEW: LOGIN SCREEN
+    // ==========================================
+    function renderLoginView() {
+      return `
+        <div class="min-h-[85vh] flex items-center justify-center py-6 fade-in">
+          <div class="w-full max-w-md">
+            
+            <!-- BRAND CARD -->
+            <div class="text-center mb-8">
+              <div class="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-rose-600 to-amber-500 shadow-xl shadow-rose-500/20 mb-4 transform hover:scale-105 transition-transform">
+                <span class="text-5xl">🀄</span>
+              </div>
+              <h1 class="text-3xl font-black text-white tracking-tight">中文词汇大师</h1>
+              <p class="text-slate-400 font-medium text-sm mt-1">Hệ Thống Học Tiếng Trung & Quản Lý Học Viên</p>
+            </div>
+
+            <!-- LOGIN CARD -->
+            <div class="glass-card rounded-3xl p-8 shadow-2xl border border-white/20">
+              <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center justify-between">
+                <span>Đăng nhập hệ thống</span>
+                <span class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-semibold">HSK 1 &bull; 2 &bull; 3</span>
+              </h2>
+
+              <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tên đăng nhập</label>
+                  <input type="text" id="loginUsername" required placeholder="Nhập tên tài khoản..." 
+                         class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition-all text-sm">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mật khẩu</label>
+                  <input type="password" id="loginPassword" required placeholder="Nhập mật khẩu..." 
+                         class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition-all text-sm">
+                </div>
+
+                <div id="loginError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200 text-center">
+                  ⚠️ Tên đăng nhập hoặc mật khẩu không chính xác!
+                </div>
+
+                <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-rose-500/25 transition-all transform active:scale-[0.98]">
+                  Đăng Nhập Vào Học & Quản Lý &rarr;
+                </button>
+              </form>
+
+              <!-- QUICK TEST DEMO LOGINS -->
+              <div class="mt-8 pt-6 border-t border-slate-100">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-3">
+                  ⚡ Đăng nhập nhanh 1-Click (Dùng thử ngay)
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                  <button onclick="quickLogin('admin')" class="p-2.5 rounded-xl bg-slate-900 text-amber-400 hover:bg-slate-800 border border-slate-700 flex items-center justify-center gap-1.5 transition-all">
+                    👑 <span>Quản Lý (Admin)</span>
+                  </button>
+                  <button onclick="quickLogin('hocvien1')" class="p-2.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    🎓 <span>Học Viên HSK 1</span>
+                  </button>
+                  <button onclick="quickLogin('hocvien2')" class="p-2.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    🎓 <span>Học Viên HSK 2</span>
+                  </button>
+                  <button onclick="quickLogin('hocvien3')" class="p-2.5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 flex items-center justify-center gap-1.5 transition-all">
+                    🎓 <span>Học Viên HSK 3</span>
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-400 text-center mt-3">Mật khẩu mặc định tất cả tài khoản mẫu: <span class="font-bold text-slate-600">123</span></p>
+              </div>
+
+            </div>
+
           </div>
-          <div onclick="openWordBank('learning')" class="cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition-colors">
-            <div class="text-2xl font-bold text-yellow-500" id="statLearning">0</div>
-            <div class="text-sm text-gray-500">Đang học</div>
-          </div>
-          <div onclick="openWordBank('weak')" class="cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition-colors">
-            <div class="text-2xl font-bold text-red-500" id="statWeak">0</div>
-            <div class="text-sm text-gray-500">Cần ôn</div>
-          </div>
-          <div class="p-2">
-            <div class="text-2xl font-bold text-blue-500" id="statAccuracy">0%</div>
-            <div class="text-sm text-gray-500">Độ chính xác</div>
-          </div>
         </div>
-      </div>
-    </div>
+      `;
+    }
 
-    <!-- Game Area -->
-    <div id="gameArea" class="hidden fade-in"></div>
+    // ==========================================
+    // 6. VIEW: MANAGER (TEACHER) DASHBOARD
+    // ==========================================
+    let managerActiveTab = 'students'; // 'overview' | 'students' | 'tests' | 'grades'
 
-    <!-- Word Bank Modal -->
-    <div id="wordBankModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col fade-in">
-        <div class="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-3xl">
-          <h2 class="text-xl font-bold flex items-center gap-2">📖 Kho Từ Vựng</h2>
-          <button onclick="closeWordBank()" class="text-gray-500 hover:text-red-500 text-3xl font-bold leading-none">&times;</button>
+    function setManagerTab(tab) {
+      managerActiveTab = tab;
+      renderApp();
+    }
+
+    function renderManagerView() {
+      db = loadDB();
+      const students = db.users.filter(u => u.role === 'student');
+      const tests = db.tests || [];
+      const submissions = db.submissions || [];
+
+      return `
+        <div class="fade-in space-y-6">
+          
+          <!-- TOP NAV / PROFILE BAR -->
+          <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-xl border border-white/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-3xl shadow-lg shadow-rose-500/20 text-white font-black">
+                师
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h1 class="text-xl sm:text-2xl font-black text-slate-800">${currentUser.fullName}</h1>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700 border border-rose-200">QUẢN LÝ / GIÁO VIÊN</span>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-500 font-medium">Bảng điều khiển lớp học & kiểm tra năng lực HSK</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end md:self-auto">
+              <button onclick="openCreateTestModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs sm:text-sm hover:opacity-95 shadow-md flex items-center gap-2 transition-all">
+                <span>➕</span> Soạn Bài Test Mới
+              </button>
+              <button onclick="openAddStudentModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-slate-800 shadow-md flex items-center gap-2 transition-all">
+                <span>👤</span> Thêm Học Viên
+              </button>
+              <button onclick="logout()" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all" title="Đăng xuất">
+                🚪
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB CONTROLLERS -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+            <button onclick="setManagerTab('students')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${managerActiveTab === 'students' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>👥</span> Quản Lý Học Viên (${students.length})
+            </button>
+            <button onclick="setManagerTab('tests')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${managerActiveTab === 'tests' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>📝</span> Ngân Hàng Đề Test (${tests.length})
+            </button>
+            <button onclick="setManagerTab('grades')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${managerActiveTab === 'grades' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>📊</span> Bảng Điểm & Báo Cáo (${submissions.length})
+            </button>
+          </div>
+
+          <!-- TAB CONTENT -->
+          <div class="fade-in">
+            ${managerActiveTab === 'students' ? renderManagerStudentsTab(students) : ''}
+            ${managerActiveTab === 'tests' ? renderManagerTestsTab(tests) : ''}
+            ${managerActiveTab === 'grades' ? renderManagerGradesTab(submissions) : ''}
+          </div>
+
         </div>
-        <div class="p-4 flex gap-2 border-b border-gray-200 bg-white overflow-x-auto whitespace-nowrap">
-           <button onclick="renderWordBank('all')" class="wb-tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white" id="wbTab-all">📋 Tất cả</button>
-           <button onclick="renderWordBank('learning')" class="wb-tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" id="wbTab-learning">🔥 Đang học</button>
-           <button onclick="renderWordBank('weak')" class="wb-tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" id="wbTab-weak">❌ Cần ôn (Hay sai)</button>
-           <button onclick="renderWordBank('mastered')" class="wb-tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200" id="wbTab-mastered">✅ Đã thuộc</button>
-        </div>
-        <div class="p-4 flex-1 overflow-y-auto bg-gray-50 rounded-b-3xl">
-          <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <table class="w-full text-left border-collapse" id="wordBankTable">
-              <!-- Rendered via JS -->
+      `;
+    }
+
+    // SUB-TAB 1: STUDENTS
+    function renderManagerStudentsTab(students) {
+      return `
+        <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-black text-slate-800">Danh Sách Học Viên Đang Quản Lý</h2>
+              <p class="text-xs text-slate-500">Theo dõi cấp độ HSK, file từ vựng đang học và điểm tích luỹ của từng học viên</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-400">Lọc Cấp Độ:</span>
+              <select id="studentLevelFilter" onchange="filterStudentsTable(this.value)" class="text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 outline-none">
+                <option value="ALL">Tất cả (HSK 1-3)</option>
+                <option value="HSK1">HSK 1</option>
+                <option value="HSK2">HSK 2</option>
+                <option value="HSK3">HSK 3</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm" id="studentsTable">
+              <thead>
+                <tr class="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <th class="py-3 px-4">Học Viên</th>
+                  <th class="py-3 px-4">Tài Khoản</th>
+                  <th class="py-3 px-4 text-center">Cấp Độ</th>
+                  <th class="py-3 px-4">File Từ Vựng Đang Học</th>
+                  <th class="py-3 px-4 text-center">Điểm EXP</th>
+                  <th class="py-3 px-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${students.map(s => {
+                  const levelColors = {
+                    HSK1: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    HSK2: 'bg-sky-50 text-sky-700 border-sky-200',
+                    HSK3: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  };
+                  return `
+                    <tr class="hover:bg-slate-50/80 transition-colors student-row" data-level="${s.level}">
+                      <td class="py-4 px-4 font-bold text-slate-800 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black text-sm">
+                          ${s.fullName.charAt(0)}
+                        </div>
+                        <div>
+                          <div>${s.fullName}</div>
+                          <div class="text-[11px] font-medium text-slate-400">Chuỗi học: 🔥 ${s.streak || 0} ngày</div>
+                        </div>
+                      </td>
+                      <td class="py-4 px-4 font-mono text-xs text-slate-600">
+                        ${s.username} <span class="text-slate-300">(${s.password})</span>
+                      </td>
+                      <td class="py-4 px-4 text-center">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-black border ${levelColors[s.level] || 'bg-slate-100 text-slate-600'}">
+                          ${s.level}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4">
+                        ${s.currentFile ? `
+                          <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <span>📄</span> <span class="truncate max-w-[160px]">${s.currentFile.fileName}</span>
+                          </div>
+                          <div class="text-[11px] text-slate-400">${s.currentFile.wordCount} từ vựng đã nạp</div>
+                        ` : `
+                          <span class="text-xs text-slate-400 italic">Chưa nạp file</span>
+                        `}
+                      </td>
+                      <td class="py-4 px-4 text-center font-bold text-amber-600">
+                        ⭐ ${s.exp || 0}
+                      </td>
+                      <td class="py-4 px-4 text-right space-x-1 whitespace-nowrap">
+                        <button onclick="viewStudentDetail('${s.id}')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all" title="Xem chi tiết tiến độ">
+                          👁️ Chi tiết
+                        </button>
+                        <button onclick="deleteStudent('${s.id}')" class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all" title="Xoá học viên">
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
             </table>
           </div>
         </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    // =================== DATA & STATE ===================
-    let allWords = [];
-    let filteredWords = [];
-    let currentFilter = 'all';
-    let wordStats = {}; 
-    let globalScore = 0;
-    let globalStreak = 0;
-    let currentGame = null;
-    let showPinyin = true;
-    let combo = 0;
-    
-    // =================== AUDIO (SFX) ===================
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSFX(type) {
-      if (!audioCtx) return;
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      const now = audioCtx.currentTime;
-      if (type === 'correct') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
-        gainNode.gain.setValueAtTime(0.3, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        osc.start(now); osc.stop(now + 0.1);
-      } else if (type === 'wrong') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
-        gainNode.gain.setValueAtTime(0.3, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.start(now); osc.stop(now + 0.2);
-      }
-    }
-
-    // =================== WORD BANK ===================
-    function openWordBank(filter = 'all') {
-      document.getElementById('wordBankModal').classList.remove('hidden');
-      renderWordBank(filter);
-    }
-    function closeWordBank() {
-      document.getElementById('wordBankModal').classList.add('hidden');
-    }
-    function renderWordBank(filter) {
-      document.querySelectorAll('.wb-tab-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-100', 'text-gray-700');
-      });
-      const activeBtn = document.getElementById('wbTab-' + filter);
-      if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-100', 'text-gray-700');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-      }
-
-      let list = [];
-      allWords.forEach(w => {
-        const s = wordStats[w.hanzi] || {correct: 0, wrong: 0, seen: 0};
-        const isMastered = s.correct >= 3 && s.correct > s.wrong * 2;
-        const isWeak = s.wrong > 0 && s.wrong >= s.correct;
-        const isLearning = s.seen > 0 && !isMastered && !isWeak;
-        
-        if (filter === 'all') list.push(w);
-        else if (filter === 'mastered' && isMastered) list.push(w);
-        else if (filter === 'weak' && isWeak) list.push(w);
-        else if (filter === 'learning' && isLearning) list.push(w);
-      });
-
-      const tbody = list.map(w => {
-        const s = wordStats[w.hanzi] || {correct:0, wrong:0};
-        return `
-          <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-            <td class="p-4">
-              <div class="font-bold text-2xl text-gray-800">${w.hanzi}</div>
-              <div class="text-sm text-blue-500 font-medium mt-1">${w.pinyin}</div>
-            </td>
-            <td class="p-4">
-              <div class="font-medium text-gray-800">${w.meaning}</div>
-              <div class="text-xs text-gray-400 uppercase tracking-wide mt-1">${w.type}</div>
-            </td>
-            <td class="p-4 text-sm text-center">
-               <div class="flex items-center justify-center gap-2">
-                 <span class="text-green-500 font-bold bg-green-50 px-2 py-1 rounded-md">${s.correct} ✔</span>
-                 <span class="text-gray-300">|</span>
-                 <span class="text-red-500 font-bold bg-red-50 px-2 py-1 rounded-md">${s.wrong} ✘</span>
-               </div>
-            </td>
-            <td class="p-4 text-center">
-              <button onclick="speak('${w.hanzi}')" class="p-3 bg-gray-100 text-xl rounded-full hover:bg-gray-200 hover:scale-110 transition-all shadow-sm">🔊</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      document.getElementById('wordBankTable').innerHTML = list.length === 0 
-        ? '<tr><td colspan="4" class="p-8 text-center text-gray-500 font-medium">Không có từ vựng nào trong mục này.</td></tr>'
-        : `
-        <thead>
-          <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider border-b border-gray-200">
-            <th class="p-4 font-medium">Từ vựng</th>
-            <th class="p-4 font-medium">Nghĩa</th>
-            <th class="p-4 font-medium text-center">Đúng/Sai</th>
-            <th class="p-4 font-medium text-center">Nghe</th>
-          </tr>
-        </thead>
-        <tbody>${tbody}</tbody>
       `;
     }
 
-    // =================== PINYIN TOGGLE ===================
-    function togglePinyin() {
-      showPinyin = !showPinyin;
-      const btn = document.getElementById('pinyinToggleBtn');
-      if (showPinyin) {
-        btn.textContent = 'BẬT';
-        btn.className = 'bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-bold transition-all hover:opacity-90 shadow-sm';
-      } else {
-        btn.textContent = 'TẮT';
-        btn.className = 'bg-gray-400 text-white px-4 py-1.5 rounded-full text-sm font-bold transition-all hover:opacity-90 shadow-sm';
-      }
+    function filterStudentsTable(level) {
+      document.querySelectorAll('.student-row').forEach(row => {
+        if (level === 'ALL' || row.dataset.level === level) row.classList.remove('hidden');
+        else row.classList.add('hidden');
+      });
     }
 
-    // =================== DATA IMPORT ===================
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      document.getElementById('fileStatus').textContent = '⏳ Đang đọc file...';
-      document.getElementById('fileStatus').className = 'text-sm text-yellow-600 font-medium';
-      
-      const reader = new FileReader();
-      
-      if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
-        reader.onload = function(ev) {
-          try {
-            const data = new Uint8Array(ev.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-            const text = rows.map(r => r.join('\t')).join('\n');
-            parseData(text, file.name);
-          } catch (err) {
-            console.error('XLSX parse error:', err);
-            document.getElementById('fileStatus').textContent = '❌ Lỗi đọc file Excel: ' + err.message;
-            document.getElementById('fileStatus').className = 'text-sm text-red-500 font-medium';
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        reader.onload = function(ev) {
-          parseData(ev.target.result, file.name);
-        };
-        reader.readAsText(file, 'UTF-8');
-      }
-    });
+    // SUB-TAB 2: TESTS
+    function renderManagerTestsTab(tests) {
+      return `
+        <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-black text-slate-800">Ngân Hàng Bài Mini Test Đã Tạo</h2>
+              <p class="text-xs text-slate-500">Tạo đề A B C D, Điền từ, Sắp xếp câu để kiểm tra và giao cho từng cấp độ HSK</p>
+            </div>
+            <button onclick="openCreateTestModal()" class="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 flex items-center gap-1.5 shadow-sm transition-all">
+              <span>➕</span> Soạn Đề Mới
+            </button>
+          </div>
 
-    function parseData(text, filename) {
-      const lines = text.split('\n').filter(l => l.trim());
-      const words = [];
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        let parts;
-        if (line.includes('\t')) {
-          parts = line.split('\t');
-        } else if (line.includes(',')) {
-          parts = parseCSVLine(line);
-        } else {
-          parts = line.split(/\s{2,}/);
-        }
-        
-        parts = parts.map(p => p.trim().replace(/^["']|["']$/g, ''));
-        
-        // Find the index of the column containing Hanzi (ignore STT, ID columns safely)
-        let hanziIdx = -1;
-        for (let j = 0; j < parts.length; j++) {
-          if (/[\u4e00-\u9fff]/.test(parts[j])) {
-            hanziIdx = j;
-            break;
-          }
-        }
-        
-        if (hanziIdx === -1) continue; // No Hanzi found in this row
-        
-        const word = {
-          hanzi: parts[hanziIdx] || '',
-          pinyin: (parts[hanziIdx + 1] || '').replace(/[/\\]/g, '').trim(),
-          type: (parts[hanziIdx + 2] || '').trim(),
-          meaning: (parts[hanziIdx + 3] || '').trim(),
-          exampleCN: (parts[hanziIdx + 4] || '').trim(),
-          examplePinyin: (parts[hanziIdx + 5] || '').trim(),
-          exampleVN: (parts[hanziIdx + 6] || '').trim()
-        };
-        
-        if (word.hanzi && word.meaning) {
-          words.push(word);
-          if (!wordStats[word.hanzi]) {
-            wordStats[word.hanzi] = { correct: 0, wrong: 0, seen: 0, mastered: false };
-          }
-        }
-      }
-      
-      if (words.length > 0) {
-        allWords = words;
-        filteredWords = [...allWords];
-        document.getElementById('totalWords').textContent = words.length;
-        document.getElementById('fileStatus').textContent = `✅ Đã nạp thành công ${words.length} từ vựng hợp lệ`;
-        document.getElementById('fileStatus').className = 'text-sm text-green-600 font-bold';
-        
-        showImportPreview(words.slice(0, 3));
-        
-        setTimeout(() => {
-          document.getElementById('gameMenu').classList.remove('hidden');
-          updateStats();
-          updateWordCountInfo();
-        }, 500);
-        
-        saveProgress();
-      } else {
-        document.getElementById('fileStatus').textContent = '❌ Không tìm thấy từ vựng hợp lệ. Hãy kiểm tra lại cột Hán Tự & Nghĩa.';
-        document.getElementById('fileStatus').className = 'text-sm text-red-500 font-medium';
-      }
-    }
-
-    function parseCSVLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          inQuotes = !inQuotes;
-        } else if ((ch === ',' || ch === '\t') && !inQuotes) {
-          result.push(current);
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-      result.push(current);
-      return result;
-    }
-
-    function showImportPreview(words) {
-      const preview = document.getElementById('importPreview');
-      preview.classList.remove('hidden');
-      preview.innerHTML = `
-        <div class="text-sm font-medium mb-2 text-gray-700">Xem trước dữ liệu:</div>
-        <div class="overflow-x-auto rounded-lg border border-gray-200">
-          <table class="text-sm w-full border-collapse">
-            <thead class="bg-gray-50">
-              <tr class="text-gray-600">
-                <th class="text-left p-2 border-b border-gray-200">Hán tự</th>
-                <th class="text-left p-2 border-b border-gray-200">Pinyin</th>
-                <th class="text-left p-2 border-b border-gray-200">Loại</th>
-                <th class="text-left p-2 border-b border-gray-200">Nghĩa</th>
-                <th class="text-left p-2 border-b border-gray-200">Ví dụ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${words.map(w => `
-                <tr class="bg-white">
-                  <td class="p-2 border-b border-gray-100 font-bold text-lg text-gray-800">${w.hanzi}</td>
-                  <td class="p-2 border-b border-gray-100 text-blue-600">${w.pinyin}</td>
-                  <td class="p-2 border-b border-gray-100 text-gray-600">${w.type}</td>
-                  <td class="p-2 border-b border-gray-100 text-gray-800">${w.meaning}</td>
-                  <td class="p-2 border-b border-gray-100 text-gray-500 truncate max-w-[200px]">${w.exampleCN || '—'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${tests.map(t => {
+              const subs = (db.submissions || []).filter(s => s.testId === t.id);
+              return `
+                <div class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-rose-400 transition-all card-hover space-y-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
+                      ${t.level}
+                    </span>
+                    <span class="text-xs font-semibold text-slate-400">⏱️ ${t.durationMinutes} phút</span>
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-slate-800 text-base leading-snug">${t.title}</h3>
+                    <p class="text-xs text-slate-500 mt-1">${t.questions.length} câu hỏi &bull; Tạo ngày: ${t.createdAt}</p>
+                  </div>
+                  <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="font-semibold text-emerald-600">Đã nộp bài: ${subs.length} lượt</span>
+                    <div class="space-x-1">
+                      <button onclick="previewTest('${t.id}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all">Xem Đề</button>
+                      <button onclick="deleteTest('${t.id}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-all" title="Xoá đề">🗑️</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
       `;
     }
 
-    function loadSampleData() {
-      const sampleCSV = `1\t安心\tān xīn\tđộng từ\tYên tâm\t你可以安心工作，我来照顾孩子。\tNǐ kěyǐ ānxīn gōngzuò, wǒ lái zhàogù háizi\tBạn có thể yên tâm làm việc, tôi sẽ chăm sóc con.
-2\t安排\tān pái\tđộng từ\tSắp xếp, bố trí\t老师已经安排了明天的课程表。\tLǎoshī yǐjīng ānpái le míngtiān de kèchéngbiǎo\tGiáo viên đã sắp xếp thời khóa biểu cho ngày mai
-3\t安装\tān zhuāng\tđộng từ\tLắp đặt, cài đặt\t我们在房间里安装了新空调。\tWǒ gēnjù ānzhuāng shuōmíng ān rújiàn\tTôi cài đặt phần mềm theo hướng dẫn
-4\t暗\tàn\ttính từ\tÂm, tối, mờ\t他暗自在开心。\tTā zhèngzài ān mǐtíng\tAnh ấy đang họp kín
-5\t按照\tàn zhào\tgiới từ\tTheo, dựa theo\t我会按照时间表完成工作。\tWǒ huì ànzhào shíjiān biǎo gōngzuò\tTôi sẽ làm theo thời gian biểu
-6\t爱情\tài qíng\tdanh từ\tTình yêu\t爱情需要两个人共同努力。\tÀiqíng xūyào liǎng gè rén gòngtóng nǔlì\tTình yêu cần hai người cùng cố gắng
-7\t爱好\tài hào\tdanh từ\tSở thích\t他的爱好是打篮球。\tTā de àihào shì dǎ lánqiú\tSở thích của anh ấy là chơi bóng rổ
-8\t白\tbái\ttính từ\tTrắng\t她穿了一件白色的裙子。\tTā chuānle yī jiàn báisè de qúnzi\tCô ấy mặc một chiếc váy trắng
-9\t百\tbǎi\tsố từ\tTrăm\t这本书有一百页。\tZhè běn shū yǒu yībǎi yè\tCuốn sách này có 100 trang
-10\t办法\tbàn fǎ\tdanh từ\tCách, biện pháp\t我们需要想一个好办法。\tWǒmen xūyào xiǎng yī gè hǎo bànfǎ\tChúng ta cần nghĩ ra một cách hay`;
-      parseData(sampleCSV, 'dữ liệu mẫu');
-    }
-
-    // =================== FILTER & STATS ===================
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-        if (btn.dataset.filter === filter) {
-          btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-        }
-      });
-      
-      if (filter === 'all') {
-        filteredWords = [...allWords];
-      } else if (filter === 'weak') {
-        filteredWords = allWords.filter(w => {
-          const s = wordStats[w.hanzi];
-          return s && s.wrong > s.correct;
-        });
-      } else {
-        filteredWords = allWords.filter(w => w.type.includes(filter));
-      }
-      
-      updateWordCountInfo();
-    }
-
-    function updateWordCountInfo() {
-      const el = document.getElementById('wordCountInfo');
-      el.textContent = `📖 Sẵn sàng: ${filteredWords.length} từ ${currentFilter !== 'all' ? `(đã lọc)` : ''}`;
-      if (filteredWords.length < 4) {
-        el.classList.add('text-red-500');
-        el.textContent += ' - ⚠️ Cần tối thiểu 4 từ để chơi game!';
-      } else {
-        el.classList.remove('text-red-500');
-      }
-    }
-
-    function updateStats() {
-      let learned = 0, learning = 0, weak = 0, totalCorrect = 0, totalAttempts = 0;
-      allWords.forEach(w => {
-        const s = wordStats[w.hanzi];
-        if (!s) return;
-        totalCorrect += s.correct;
-        totalAttempts += s.correct + s.wrong;
-        if (s.correct >= 3 && s.correct > s.wrong * 2) learned++;
-        else if (s.seen > 0 && s.wrong <= s.correct) learning++;
-        else if (s.wrong > 0) weak++;
-      });
-      
-      document.getElementById('statLearned').textContent = learned;
-      document.getElementById('statLearning').textContent = learning;
-      document.getElementById('statWeak').textContent = weak;
-      document.getElementById('statAccuracy').textContent = totalAttempts > 0 ? Math.round(totalCorrect / totalAttempts * 100) + '%' : '0%';
-      document.getElementById('totalScore').textContent = globalScore;
-      document.getElementById('streak').textContent = globalStreak;
-    }
-
-    function showFloatingText(text, colorClass) {
-      const el = document.createElement('div');
-      el.textContent = text;
-      el.className = `float-text font-black text-4xl ${colorClass}`;
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 1000);
-    }
-
-    function recordAnswer(hanzi, correct) {
-      if (!wordStats[hanzi]) wordStats[hanzi] = { correct: 0, wrong: 0, seen: 0, mastered: false };
-      wordStats[hanzi].seen++;
-      if (correct) {
-        playSFX('correct');
-        wordStats[hanzi].correct++;
-        combo++;
-        let multiplier = 1;
-        if (combo >= 10) multiplier = 3;
-        else if (combo >= 5) multiplier = 2;
-        else if (combo >= 3) multiplier = 1.5;
-        
-        let pts = Math.floor(10 * multiplier);
-        globalScore += pts;
-        globalStreak++;
-        showFloatingText(`+${pts}`, 'text-green-500');
-      } else {
-        playSFX('wrong');
-        wordStats[hanzi].wrong++;
-        combo = 0;
-        globalStreak = 0;
-        showFloatingText('❌', 'text-red-500');
-      }
-      updateStats();
-      saveProgress();
-    }
-
-    function saveProgress() {
-      try {
-        localStorage.setItem('cnvocab_stats', JSON.stringify(wordStats));
-        localStorage.setItem('cnvocab_score', globalScore);
-        localStorage.setItem('cnvocab_streak', globalStreak);
-      } catch(e) {}
-    }
-
-    function loadProgress() {
-      try {
-        const stats = localStorage.getItem('cnvocab_stats');
-        if (stats) wordStats = JSON.parse(stats);
-        globalScore = parseInt(localStorage.getItem('cnvocab_score') || '0');
-        globalStreak = parseInt(localStorage.getItem('cnvocab_streak') || '0');
-      } catch(e) {}
-    }
-
-    function shuffle(arr) {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    function getRandomWords(exclude, count, pool) {
-      pool = pool || allWords;
-      const others = pool.filter(w => w.hanzi !== exclude);
-      return shuffle(others).slice(0, count);
-    }
-
-    function speak(text) {
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'zh-CN';
-        u.rate = 0.8;
-        speechSynthesis.speak(u);
-      }
-    }
-
-    function createConfetti(container) {
-      const colors = ['🎉', '⭐', '🌟', '✨', '🎊', '💫'];
-      for (let i = 0; i < 8; i++) {
-        const particle = document.createElement('span');
-        particle.className = 'confetti-particle';
-        particle.textContent = colors[Math.floor(Math.random() * colors.length)];
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.top = '50%';
-        particle.style.fontSize = (Math.random() * 20 + 14) + 'px';
-        container.style.position = 'relative';
-        container.appendChild(particle);
-        setTimeout(() => particle.remove(), 1200);
-      }
-    }
-
-    function backToMenu() {
-      currentGame = null;
-      document.getElementById('gameArea').classList.add('hidden');
-      document.getElementById('gameMenu').classList.remove('hidden');
-      updateStats();
-    }
-
-    function startGame(gameType) {
-      if (filteredWords.length < 4 && ['quiz', 'matching', 'speed', 'listen', 'memory'].includes(gameType)) {
-        alert('❌ Cần có TỐI THIỂU 4 TỪ hợp lệ để chơi các game dạng chọn lọc (Trắc nghiệm, Nối từ, Tốc độ...). \n\n👉 File của bạn có thể có ít từ, hoặc bộ lọc hiện tại đang loại bỏ quá nhiều từ.');
-        return;
-      }
-      if (filteredWords.length < 1) {
-        alert('❌ Không có từ nào để học. Hãy kiểm tra lại file hoặc bộ lọc.');
-        return;
-      }
-      
-      currentGame = gameType;
-      document.getElementById('gameMenu').classList.add('hidden');
-      document.getElementById('gameArea').classList.remove('hidden');
-      
-      switch(gameType) {
-        case 'flashcard': initFlashcard(); break;
-        case 'quiz': initQuiz(); break;
-        case 'matching': initMatching(); break;
-        case 'typing': initTyping(); break;
-        case 'speed': initSpeed(); break;
-        case 'listen': initListen(); break;
-        case 'fillblank': initFillBlank(); break;
-        case 'memory': initMemory(); break;
-      }
-    }
-
-    // =================== GAME 1: FLASHCARD ===================
-    function initFlashcard() {
-      const words = shuffle(filteredWords);
-      let idx = 0;
-
-      function render() {
-        const w = words[idx];
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <span class="text-sm font-bold text-gray-500">${idx + 1} / ${words.length}</span>
+    // SUB-TAB 3: GRADES & SUBMISSIONS
+    function renderManagerGradesTab(submissions) {
+      return `
+        <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 space-y-6">
+          <div class="pb-4 border-b border-slate-100">
+            <h2 class="text-lg font-black text-slate-800">Bảng Điểm & Kết Quả Nộp Bài Của Học Viên</h2>
+            <p class="text-xs text-slate-500">Xem chi tiết bài làm, số câu đúng và thời gian nộp bài của từng học viên</p>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full progress-bar" style="width: ${(idx + 1) / words.length * 100}%"></div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <th class="py-3 px-4">Học Viên</th>
+                  <th class="py-3 px-4">Bài Kiểm Tra</th>
+                  <th class="py-3 px-4 text-center">Cấp Độ</th>
+                  <th class="py-3 px-4 text-center">Điểm Số</th>
+                  <th class="py-3 px-4 text-center">Số Câu Đúng</th>
+                  <th class="py-3 px-4">Thời Gian Nộp</th>
+                  <th class="py-3 px-4 text-right">Chi Tiết</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${submissions.length === 0 ? `
+                  <tr><td colspan="7" class="py-8 text-center text-slate-400 font-medium">Chưa có học viên nào nộp bài.</td></tr>
+                ` : submissions.map(sub => {
+                  const test = (db.tests || []).find(t => t.id === sub.testId);
+                  const isGood = sub.score >= 70;
+                  return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                      <td class="py-4 px-4 font-bold text-slate-800">${sub.studentName}</td>
+                      <td class="py-4 px-4 font-semibold text-slate-700">${test ? test.title : 'Mini Test'}</td>
+                      <td class="py-4 px-4 text-center">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700">${sub.level}</span>
+                      </td>
+                      <td class="py-4 px-4 text-center">
+                        <span class="px-3 py-1 rounded-xl text-sm font-black ${isGood ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">
+                          ${sub.score} / 100
+                        </span>
+                      </td>
+                      <td class="py-4 px-4 text-center font-semibold text-slate-600">
+                        ${sub.correctCount} / ${sub.totalQuestions}
+                      </td>
+                      <td class="py-4 px-4 text-xs text-slate-400 font-mono">${sub.submittedAt}</td>
+                      <td class="py-4 px-4 text-right">
+                        <button onclick="viewSubmissionDetail('${sub.id}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
+                          Xem bài làm
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
           </div>
-          <div id="flashcardContainer" onclick="document.getElementById('flashcardBack').classList.toggle('hidden'); document.getElementById('flashcardFront').classList.toggle('hidden');" 
-               class="card-hover cursor-pointer bg-white border border-gray-200 rounded-3xl shadow-md p-8 mx-auto max-w-lg min-h-[320px] flex flex-col items-center justify-center text-center">
-            
-            <div id="flashcardFront">
-              <div class="hanzi-large font-bold mb-4 text-gray-800">${w.hanzi}</div>
-              <div class="text-xl font-medium text-blue-600 mb-2 min-h-[30px]">${showPinyin ? w.pinyin : ''}</div>
-              <div class="text-sm text-gray-400 mt-4">👆 Nhấn vào thẻ để lật</div>
-            </div>
-            
-            <div id="flashcardBack" class="hidden w-full">
-              <div class="hanzi-medium font-bold mb-2 text-gray-800">${w.hanzi}</div>
-              <div class="text-lg font-medium text-blue-600 mb-3">${w.pinyin}</div>
-              <div class="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-medium mb-3 inline-block">${w.type}</div>
-              <div class="text-2xl font-bold mb-4 text-green-600">${w.meaning}</div>
-              ${w.exampleCN ? `
-                <div class="text-left bg-gray-50 rounded-xl p-4 w-full mt-2 border border-gray-100">
-                  <div class="text-base text-gray-800 font-medium mb-1">📖 ${w.exampleCN}</div>
-                  <div class="text-sm text-blue-500 mb-1">${w.examplePinyin}</div>
-                  <div class="text-sm text-gray-600">→ ${w.exampleVN}</div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 7. VIEW: STUDENT DASHBOARD
+    // ==========================================
+    let studentActiveTab = 'tests'; // 'tests' | 'vocab' | 'leaderboard'
+
+    function setStudentTab(tab) {
+      studentActiveTab = tab;
+      renderApp();
+    }
+
+    function renderStudentView() {
+      db = loadDB();
+      // Re-fetch current user latest state
+      currentUser = db.users.find(u => u.id === currentUser.id) || currentUser;
+
+      // Filter tests assigned to this student (either matching their HSK level or assigned to ALL)
+      const myAssignedTests = (db.tests || []).filter(t => t.level === currentUser.level || t.level === 'ALL');
+      const mySubmissions = (db.submissions || []).filter(s => s.studentId === currentUser.id);
+
+      const levelColors = {
+        HSK1: 'from-emerald-500 to-teal-600',
+        HSK2: 'from-sky-500 to-blue-600',
+        HSK3: 'from-indigo-500 to-purple-600'
+      };
+
+      return `
+        <div class="fade-in space-y-6">
+          
+          <!-- STUDENT HERO CARD -->
+          <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 relative overflow-hidden">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+              
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr ${levelColors[currentUser.level] || 'from-rose-500 to-amber-500'} flex items-center justify-center text-3xl shadow-xl text-white font-black">
+                  生
                 </div>
-              ` : ''}
-            </div>
-          </div>
-          
-          <div class="flex justify-center mt-6">
-            <button onclick="speak('${w.hanzi}')" class="text-3xl hover:scale-110 transition-transform bg-white rounded-full p-3 shadow-sm border border-gray-100">🔊</button>
-          </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h1 class="text-2xl font-black text-slate-800">${currentUser.fullName}</h1>
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-700 border border-rose-200">
+                      ${currentUser.level}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-4 text-xs font-semibold text-slate-500 mt-1">
+                    <span>🔥 Chuỗi: <b>${currentUser.streak || 1} ngày</b></span>
+                    <span>⭐ Điểm EXP: <b>${currentUser.exp || 0}</b></span>
+                    <span>🏅 Huy hiệu: <b>${(currentUser.badges || []).length}</b></span>
+                  </div>
+                </div>
+              </div>
 
-          <div class="flex justify-center gap-4 mt-6">
-            <button onclick="window._fcAction('hard')" class="px-6 py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors border border-red-200 shadow-sm">😰 Khó</button>
-            <button onclick="window._fcAction('ok')" class="px-6 py-3 rounded-xl bg-yellow-50 text-yellow-600 font-bold hover:bg-yellow-100 transition-colors border border-yellow-200 shadow-sm">🤔 Tạm ổn</button>
-            <button onclick="window._fcAction('easy')" class="px-6 py-3 rounded-xl bg-green-50 text-green-600 font-bold hover:bg-green-100 transition-colors border border-green-200 shadow-sm">😊 Dễ</button>
-          </div>
-        `;
-      }
-
-      window._fcAction = function(level) {
-        const w = words[idx];
-        if (level === 'easy') recordAnswer(w.hanzi, true);
-        else if (level === 'hard') recordAnswer(w.hanzi, false);
-        else { wordStats[w.hanzi] = wordStats[w.hanzi] || { correct: 0, wrong: 0, seen: 0 }; wordStats[w.hanzi].seen++; }
-        
-        idx++;
-        if (idx >= words.length) showGameComplete('Flashcard', words.length);
-        else render();
-      };
-      render();
-    }
-
-    // =================== GAME 2: QUIZ ===================
-    function initQuiz() {
-      const words = shuffle(filteredWords).slice(0, Math.min(20, filteredWords.length));
-      let idx = 0; let score = 0; let lives = 3;
-
-      function render() {
-        const w = words[idx];
-        const distractors = getRandomWords(w.hanzi, 3);
-        const options = shuffle([w, ...distractors]);
-        const mode = Math.random() > 0.5 ? 'hanzi2meaning' : 'meaning2hanzi';
-        
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <div class="flex items-center gap-4">
-              <span class="text-lg font-bold tracking-widest">${'❤️'.repeat(lives)}</span>
-              <span class="text-sm font-bold text-gray-500">${idx + 1} / ${words.length}</span>
-            </div>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full progress-bar" style="width: ${(idx + 1) / words.length * 100}%"></div>
-          </div>
-          
-          <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center mb-6">
-            ${mode === 'hanzi2meaning' ? `
-              <div class="text-sm font-medium text-gray-500 mb-2">Từ này có nghĩa là gì?</div>
-              <div class="hanzi-large font-bold mb-2 text-gray-800">${w.hanzi}</div>
-              <div class="text-xl font-medium text-blue-600 min-h-[30px]">${showPinyin ? w.pinyin : ''}</div>
-              <button onclick="speak('${w.hanzi}')" class="mt-4 text-2xl hover:scale-110 transition-transform">🔊</button>
-            ` : `
-              <div class="text-sm font-medium text-gray-500 mb-2">Từ nào có nghĩa:</div>
-              <div class="text-3xl font-bold mb-2 text-green-600">"${w.meaning}"</div>
-              <div class="text-sm text-gray-400">(${w.type})</div>
-            `}
-          </div>
-          
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto" id="quizOptions">
-            ${options.map((o, i) => `
-              <button onclick="window._quizAnswer('${o.hanzi}', this)" 
-                      class="card-hover text-left p-5 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-500 transition-all shadow-sm" 
-                      data-hanzi="${o.hanzi}">
-                <span class="text-sm font-bold text-gray-400 mr-3">${['A', 'B', 'C', 'D'][i]}</span>
-                ${mode === 'hanzi2meaning' ? `
-                  <span class="font-bold text-gray-700 text-lg">${o.meaning}</span>
-                ` : `
-                  <span class="hanzi-small font-bold text-gray-800">${o.hanzi}</span>
-                  <span class="text-base font-medium text-blue-500 ml-3 min-w-[50px] inline-block">${showPinyin ? o.pinyin : ''}</span>
-                `}
-              </button>
-            `).join('')}
-          </div>
-          <div id="quizFeedback" class="mt-6 text-center hidden"></div>
-        `;
-      }
-
-      window._quizAnswer = function(chosen, btn) {
-        const w = words[idx];
-        const correct = chosen === w.hanzi;
-        const buttons = document.querySelectorAll('#quizOptions button');
-        buttons.forEach(b => {
-          b.onclick = null;
-          if (b.dataset.hanzi === w.hanzi) b.classList.add('border-green-500', 'bg-green-50');
-          else if (b === btn && !correct) b.classList.add('border-red-500', 'bg-red-50', 'shake');
-        });
-
-        if (correct) { 
-          score++; 
-          recordAnswer(w.hanzi, true); 
-          createConfetti(btn); 
-        } else { 
-          recordAnswer(w.hanzi, false);
-          lives--;
-        }
-
-        const fb = document.getElementById('quizFeedback');
-        fb.classList.remove('hidden');
-        fb.innerHTML = correct 
-          ? `<div class="text-green-600 font-bold text-lg pop">✅ Chính xác!</div>`
-          : `<div class="text-red-500 font-bold text-lg">❌ Sai rồi! Đáp án: <span class="text-gray-800">${w.hanzi}</span> = ${w.meaning}</div>`;
-
-        if (w.exampleCN) fb.innerHTML += `<div class="text-sm text-gray-600 mt-2 slide-down font-medium">📖 ${w.exampleCN} → ${w.exampleVN}</div>`;
-        
-        setTimeout(() => {
-          if (lives <= 0) {
-            showGameComplete('Trắc nghiệm', words.length, score);
-            return;
-          }
-          idx++;
-          if (idx >= words.length) showGameComplete('Trắc nghiệm', words.length, score);
-          else render();
-        }, 1800);
-      };
-      render();
-    }
-
-    // =================== GAME 3: MATCHING ===================
-    function initMatching() {
-      const words = shuffle(filteredWords).slice(0, Math.min(6, filteredWords.length));
-      let selected = null; let matched = new Set(); let attempts = 0;
-
-      function render() {
-        const leftItems = shuffle([...words]);
-        const rightItems = shuffle([...words]);
-        const area = document.getElementById('gameArea');
-        
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-bold text-green-600">✅ ${matched.size}/${words.length}</span>
-              <span class="text-sm font-bold text-gray-500">Lần thử: ${attempts}</span>
-            </div>
-          </div>
-          <h3 class="text-center text-xl font-bold mb-6 text-gray-800">🔗 Nối Hán tự với Nghĩa tiếng Việt</h3>
-          <div class="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
-            <div class="space-y-3">
-              ${leftItems.map(w => `
-                <button onclick="window._matchSelect('left', '${w.hanzi}', this)" 
-                        class="match-btn w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-center transition-all ${matched.has(w.hanzi) ? 'opacity-40 border-green-500 bg-green-50 pointer-events-none' : 'hover:border-blue-400 shadow-sm'}"
-                        data-side="left" data-hanzi="${w.hanzi}">
-                  <div class="hanzi-small font-bold text-gray-800">${w.hanzi}</div>
-                  <div class="text-sm font-medium text-blue-600 min-h-[20px]">${showPinyin ? w.pinyin : ''}</div>
+              <!-- ACTION SHORTCUTS -->
+              <div class="flex items-center gap-3">
+                <button onclick="openVocabArena()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-sm shadow-lg shadow-rose-500/20 hover:opacity-95 transition-all flex items-center gap-2">
+                  <span>🎮</span> Chơi Game & Luyện Từ
                 </button>
-              `).join('')}
-            </div>
-            <div class="space-y-3">
-              ${rightItems.map(w => `
-                <button onclick="window._matchSelect('right', '${w.hanzi}', this)" 
-                        class="match-btn w-full p-4 rounded-xl border-2 border-gray-200 bg-white text-center transition-all h-full flex flex-col justify-center ${matched.has(w.hanzi) ? 'opacity-40 border-green-500 bg-green-50 pointer-events-none' : 'hover:border-blue-400 shadow-sm'}"
-                        data-side="right" data-hanzi="${w.hanzi}">
-                  <div class="font-bold text-gray-800 text-lg">${w.meaning}</div>
-                  <div class="text-xs text-gray-400 mt-1 uppercase font-bold">${w.type}</div>
+                <button onclick="logout()" class="p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all" title="Đăng xuất">
+                  🚪
                 </button>
-              `).join('')}
+              </div>
+
+            </div>
+
+            <!-- DAILY PROGRESS BAR -->
+            <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <span class="font-bold text-slate-600">Mục tiêu học tập hàng ngày: Hoàn thành 1 bài mini-test & 10 từ vựng</span>
+              <div class="w-full sm:w-64 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-rose-500 to-amber-500 h-2.5 rounded-full" style="width: 65%"></div>
+              </div>
             </div>
           </div>
-        `;
-      }
 
-      window._matchSelect = function(side, hanzi, btn) {
-        if (matched.has(hanzi) && side === (selected?.side)) return;
-        document.querySelectorAll(`.match-btn[data-side="${side}"]`).forEach(b => {
-          if (!matched.has(b.dataset.hanzi)) b.classList.remove('border-blue-500', 'bg-blue-50');
-        });
-        btn.classList.add('border-blue-500', 'bg-blue-50');
+          <!-- TAB SWITCHER -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+            <button onclick="setStudentTab('tests')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${studentActiveTab === 'tests' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>📋</span> Bài Kiểm Tra Của Tôi (${myAssignedTests.length})
+            </button>
+            <button onclick="setStudentTab('vocab')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${studentActiveTab === 'vocab' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>📚</span> File Từ Vựng Của Tôi
+            </button>
+            <button onclick="setStudentTab('leaderboard')" class="px-5 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${studentActiveTab === 'leaderboard' ? 'bg-white text-rose-600 shadow-lg shadow-black/5' : 'bg-slate-800/60 text-slate-400 hover:text-white'}">
+              <span>🏆</span> Bảng Xếp Hạng ${currentUser.level}
+            </button>
+          </div>
 
-        if (!selected || selected.side === side) {
-          selected = { side, hanzi, btn };
-        } else {
-          attempts++;
-          if (selected.hanzi === hanzi) {
-            matched.add(hanzi); recordAnswer(hanzi, true);
-            selected.btn.classList.add('border-green-500', 'bg-green-100');
-            btn.classList.add('border-green-500', 'bg-green-100');
-            createConfetti(btn);
-            setTimeout(() => {
-              if (matched.size >= words.length) showGameComplete('Nối từ', words.length, matched.size);
-              else render();
-            }, 600);
-          } else {
-            recordAnswer(selected.hanzi, false);
-            selected.btn.classList.add('border-red-500', 'bg-red-50', 'shake');
-            btn.classList.add('border-red-500', 'bg-red-50', 'shake');
-            setTimeout(() => {
-              selected.btn.classList.remove('border-red-500', 'bg-red-50', 'shake', 'border-blue-500', 'bg-blue-50');
-              btn.classList.remove('border-red-500', 'bg-red-50', 'shake', 'border-blue-500', 'bg-blue-50');
-            }, 600);
-          }
-          selected = null;
-        }
-      };
-      render();
+          <!-- TAB CONTENT -->
+          <div class="fade-in">
+            ${studentActiveTab === 'tests' ? renderStudentTestsTab(myAssignedTests, mySubmissions) : ''}
+            ${studentActiveTab === 'vocab' ? renderStudentVocabTab() : ''}
+            ${studentActiveTab === 'leaderboard' ? renderStudentLeaderboardTab() : ''}
+          </div>
+
+        </div>
+      `;
     }
 
-    // =================== GAME 4: TYPING PINYIN ===================
-    function initTyping() {
-      const words = shuffle(filteredWords).slice(0, Math.min(15, filteredWords.length));
-      let idx = 0; let score = 0;
-
-      function render() {
-        const w = words[idx];
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại</button>
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-bold text-green-600">✅ ${score}/${idx}</span>
-              <span class="text-sm font-bold text-gray-500">${idx + 1} / ${words.length}</span>
+    // STUDENT SUB-TAB 1: ASSIGNED TESTS
+    function renderStudentTestsTab(tests, mySubmissions) {
+      return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ${tests.length === 0 ? `
+            <div class="col-span-2 glass-card rounded-3xl p-10 text-center text-slate-400 font-medium">
+              Hiện tại giáo viên chưa giao bài test nào cho cấp độ ${currentUser.level}. Hãy quay lại sau nhé!
             </div>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full progress-bar" style="width: ${(idx + 1) / words.length * 100}%"></div>
-          </div>
-          <div class="max-w-lg mx-auto text-center">
-            <div class="bg-white border border-gray-200 rounded-3xl shadow-sm p-10 mb-6">
-              <div class="text-sm font-medium text-gray-500 mb-3">Gõ Pinyin cho từ này:</div>
-              <div class="hanzi-large font-bold mb-4 text-gray-800">${w.hanzi}</div>
-              <div class="text-base font-medium text-gray-600 bg-gray-100 rounded-lg inline-block px-4 py-2">${w.meaning}</div>
-              <div class="mt-4"><button onclick="speak('${w.hanzi}')" class="text-2xl hover:scale-110 transition-transform">🔊</button></div>
-            </div>
-            <div class="flex gap-2">
-              <input type="text" id="typingInput" placeholder="Nhập pinyin (không cần dấu)..." 
-                     class="flex-1 p-4 rounded-xl border-2 border-gray-300 text-lg text-center font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                     onkeydown="if(event.key==='Enter') window._typingCheck()">
-              <button onclick="window._typingCheck()" class="px-6 py-4 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md">
-                Kiểm tra
-              </button>
-            </div>
-            <div id="typingHint" class="mt-4 text-sm font-medium text-gray-400">
-              💡 Gợi ý: ${w.pinyin.length} ký tự, bắt đầu bằng chữ "${w.pinyin[0]}"
-            </div>
-            <div id="typingFeedback" class="mt-4 hidden"></div>
-          </div>
-        `;
-        setTimeout(() => document.getElementById('typingInput')?.focus(), 100);
-      }
+          ` : tests.map(t => {
+            const submission = mySubmissions.find(s => s.testId === t.id);
+            const isCompleted = !!submission;
+            return `
+              <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 space-y-4 card-hover flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
+                      ${t.level}
+                    </span>
+                    <span class="text-xs font-semibold text-slate-400">⏱️ ${t.durationMinutes} phút</span>
+                  </div>
+                  <h3 class="text-lg font-black text-slate-800 leading-snug">${t.title}</h3>
+                  <p class="text-xs text-slate-500 mt-1">${t.questions.length} câu hỏi trắc nghiệm & điền từ</p>
+                </div>
 
-      window._typingCheck = function() {
-        const input = document.getElementById('typingInput').value.trim().toLowerCase();
-        const w = words[idx];
-        const correct = normalizePinyin(w.pinyin);
-        const isCorrect = normalizePinyin(input) === correct;
-        
-        const fb = document.getElementById('typingFeedback');
-        fb.classList.remove('hidden');
-
-        if (isCorrect) {
-          score++; recordAnswer(w.hanzi, true);
-          fb.innerHTML = `<div class="text-green-600 font-bold text-xl pop">✅ Chính xác! ${w.pinyin}</div>`;
-          createConfetti(fb);
-        } else {
-          recordAnswer(w.hanzi, false);
-          fb.innerHTML = `<div class="text-red-500 font-bold text-lg">❌ Sai! Đáp án đúng: <span class="text-blue-600">${w.pinyin}</span></div>
-                          <div class="text-sm font-medium text-gray-500 mt-1">Bạn đã gõ: ${input || '(trống)'}</div>`;
-        }
-
-        document.getElementById('typingInput').disabled = true;
-        setTimeout(() => {
-          idx++;
-          if (idx >= words.length) showGameComplete('Gõ Pinyin', words.length, score);
-          else render();
-        }, 2000);
-      };
-
-      function normalizePinyin(s) {
-        return s.toLowerCase().replace(/[/\\,. ]/g, '').replace(/[āáǎà]/g, 'a').replace(/[ēéěè]/g, 'e')
-          .replace(/[īíǐì]/g, 'i').replace(/[ōóǒò]/g, 'o').replace(/[ūúǔù]/g, 'u').replace(/[ǖǘǚǜü]/g, 'v').replace(/[^a-z]/g, '');
-      }
-      render();
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  ${isCompleted ? `
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-emerald-600">✅ Đã làm</span>
+                      <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-black text-xs">
+                        Điểm: ${submission.score}/100
+                      </span>
+                    </div>
+                    <button onclick="startTest('${t.id}')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all">
+                      🔄 Làm Lại
+                    </button>
+                  ` : `
+                    <span class="text-xs font-bold text-amber-600">⏳ Chưa hoàn thành</span>
+                    <button onclick="startTest('${t.id}')" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all transform active:scale-95">
+                      Bắt Đầu Thi &rarr;
+                    </button>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
-    // =================== GAME 5: SPEED ROUND ===================
-    function initSpeed() {
-      let timeLeft = 60; let score = 0; let answered = 0; let timer;
-
-      function getQuestion() {
-        const w = filteredWords[Math.floor(Math.random() * filteredWords.length)];
-        const distractors = getRandomWords(w.hanzi, 3);
-        return { word: w, options: shuffle([w, ...distractors]) };
-      }
-
-      function render() {
-        const q = getQuestion();
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="window._speedStop()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Dừng sớm</button>
-            <div class="flex items-center gap-6">
-              <span class="text-2xl font-black ${timeLeft <= 10 ? 'text-red-500 timer-pulse' : 'text-gray-800'}" id="speedTimer">⏱️ ${timeLeft}s</span>
-              <span class="text-xl font-bold text-green-500">⭐ ${score}</span>
+    // STUDENT SUB-TAB 2: VOCAB FILE
+    function renderStudentVocabTab() {
+      const f = currentUser.currentFile;
+      return `
+        <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-black text-slate-800">File Từ Vựng Cá Nhân Của Bạn</h2>
+              <p class="text-xs text-slate-500">File này được lưu vĩnh viễn trên tài khoản. Lần sau đăng nhập bạn vẫn tiếp tục học được!</p>
             </div>
+            
+            <!-- UPLOAD NEW FILE BUTTON -->
+            <label class="cursor-pointer px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 shadow-md flex items-center gap-2 transition-all">
+              <span>📥</span> Đổi / Nạp File Excel (.xlsx) Mới
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="handleStudentUploadFile(event)" class="hidden">
+            </label>
           </div>
-          
-          <div class="bg-white border border-gray-200 rounded-3xl shadow-md p-8 text-center mb-6">
-            <div class="hanzi-large font-bold mb-2 text-gray-900">${q.word.hanzi}</div>
-            <div class="text-2xl font-bold text-blue-600 min-h-[36px]">${showPinyin ? q.word.pinyin : ''}</div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4 max-w-xl mx-auto">
-            ${q.options.map(o => `
-              <button onclick="window._speedAnswer('${o.hanzi}', '${q.word.hanzi}')" 
-                      class="p-5 rounded-2xl border-2 border-gray-200 bg-white text-center font-bold text-lg text-gray-700 hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm">
-                ${o.meaning}
+
+          ${f ? `
+            <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold">
+                  📊
+                </div>
+                <div>
+                  <h3 class="font-bold text-slate-800 text-base">${f.fileName}</h3>
+                  <div class="text-xs text-slate-500 font-medium mt-0.5">Tổng số từ vựng: <b>${f.wordCount} từ</b></div>
+                </div>
+              </div>
+              <button onclick="openVocabArena()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all">
+                Tiếp Tục Chơi Game Với File Này &rarr;
               </button>
-            `).join('')}
+            </div>
+
+            <!-- PREVIEW SAMPLE WORDS -->
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Xem trước một số từ vựng:</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                ${f.words.slice(0, 8).map(w => `
+                  <div class="p-3.5 rounded-xl bg-white border border-slate-200 text-center">
+                    <div class="hanzi-medium font-bold text-slate-800">${w.hanzi}</div>
+                    <div class="text-xs font-semibold text-rose-600 mt-0.5">${w.pinyin}</div>
+                    <div class="text-xs text-slate-500 mt-1 truncate">${w.meaning}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="p-12 text-center text-slate-400">
+              <div class="text-4xl mb-2">📂</div>
+              <p class="font-bold text-slate-600 text-base">Bạn chưa nạp file từ vựng nào</p>
+              <p class="text-xs text-slate-400 mt-1 mb-4">Hãy tải lên một file Excel (.xlsx) từ vựng để bắt đầu luyện tập và chơi các game hấp dẫn!</p>
+              <label class="inline-flex cursor-pointer px-5 py-3 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 shadow-md transition-all">
+                Chọn File Excel (.xlsx) Để Bắt Đầu
+                <input type="file" accept=".xlsx,.xls,.csv" onchange="handleStudentUploadFile(event)" class="hidden">
+              </label>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // STUDENT SUB-TAB 3: LEADERBOARD
+    function renderStudentLeaderboardTab() {
+      db = loadDB();
+      const ranking = db.users
+        .filter(u => u.role === 'student' && u.level === currentUser.level)
+        .sort((a, b) => (b.exp || 0) - (a.exp || 0));
+
+      return `
+        <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 space-y-6">
+          <div class="pb-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-black text-slate-800">Bảng Vàng Vinh Danh &bull; Cấp Độ ${currentUser.level}</h2>
+              <p class="text-xs text-slate-500">Thi đua tích luỹ điểm EXP từ các bài mini test và mini game hàng ngày</p>
+            </div>
+            <span class="text-2xl">🏆</span>
           </div>
-          <div class="text-center mt-6 text-sm font-medium text-gray-400">Đã trả lời: ${answered} từ</div>
-        `;
-      }
 
-      window._speedAnswer = function(chosen, correct) {
-        answered++;
-        if (chosen === correct) {
-          score += 10 + Math.floor(timeLeft / 10);
-          recordAnswer(correct, true);
-        } else {
-          recordAnswer(correct, false);
-        }
-        render();
+          <div class="space-y-3">
+            ${ranking.map((user, idx) => {
+              const medals = ['🥇', '🥈', '🥉'];
+              const isMe = user.id === currentUser.id;
+              return `
+                <div class="p-4 rounded-2xl flex items-center justify-between gap-4 transition-all ${isMe ? 'bg-rose-50 border-2 border-rose-400 shadow-sm' : 'bg-slate-50 border border-slate-200'}">
+                  <div class="flex items-center gap-4">
+                    <div class="w-8 text-center font-black text-lg ${idx < 3 ? 'text-2xl' : 'text-slate-400'}">
+                      ${medals[idx] || (idx + 1)}
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black">
+                      ${user.fullName.charAt(0)}
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        ${user.fullName} ${isMe ? '<span class="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full">Bạn</span>' : ''}
+                      </div>
+                      <div class="text-xs text-slate-400">🔥 Chuỗi: ${user.streak || 0} ngày</div>
+                    </div>
+                  </div>
+                  <div class="font-black text-sm text-amber-600">
+                    ⭐ ${user.exp || 0} EXP
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 8. TEST RUNNER (INTERACTIVE TEST TAKING)
+    // ==========================================
+    function startTest(testId) {
+      db = loadDB();
+      const test = (db.tests || []).find(t => t.id === testId);
+      if (!test) return;
+
+      activeTestInstance = {
+        test: test,
+        currentIndex: 0,
+        userAnswers: {},
+        timeLeftSeconds: (test.durationMinutes || 10) * 60,
+        timerInterval: null
       };
 
-      window._speedStop = function() {
-        clearInterval(timer);
-        showGameComplete('Tốc độ', answered, score);
-      };
+      currentRoute = 'test_runner';
+      renderApp();
 
-      timer = setInterval(() => {
-        timeLeft--;
-        const el = document.getElementById('speedTimer');
-        if (el) {
-          el.textContent = `⏱️ ${timeLeft}s`;
-          if (timeLeft <= 10) el.classList.add('text-red-500', 'timer-pulse');
+      // Start countdown
+      activeTestInstance.timerInterval = setInterval(() => {
+        if (!activeTestInstance) return;
+        activeTestInstance.timeLeftSeconds--;
+        const timerEl = document.getElementById('testTimerDisplay');
+        if (timerEl) {
+          const mins = Math.floor(activeTestInstance.timeLeftSeconds / 60);
+          const secs = activeTestInstance.timeLeftSeconds % 60;
+          timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          if (activeTestInstance.timeLeftSeconds <= 60) timerEl.classList.add('text-rose-500', 'animate-pulse');
         }
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          showGameComplete('Tốc độ', answered, score);
+
+        if (activeTestInstance.timeLeftSeconds <= 0) {
+          clearInterval(activeTestInstance.timerInterval);
+          submitTest(true);
         }
       }, 1000);
-      render();
     }
 
-    // =================== GAME 6: LISTEN & CHOOSE ===================
-    function initListen() {
-      const words = shuffle(filteredWords).slice(0, Math.min(15, filteredWords.length));
-      let idx = 0; let score = 0; let lives = 3;
+    function renderTestRunnerView() {
+      if (!activeTestInstance) return '';
+      const t = activeTestInstance.test;
+      const q = t.questions[activeTestInstance.currentIndex];
+      const totalQ = t.questions.length;
+      const progress = ((activeTestInstance.currentIndex + 1) / totalQ) * 100;
 
-      function render() {
-        const w = words[idx];
-        const distractors = getRandomWords(w.hanzi, 3);
-        const options = shuffle([w, ...distractors]);
-
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <div class="flex items-center gap-4">
-              <span class="text-lg font-bold tracking-widest">${'❤️'.repeat(lives)}</span>
-              <span class="text-sm font-bold text-gray-500">${idx + 1} / ${words.length}</span>
-            </div>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full progress-bar" style="width: ${(idx + 1) / words.length * 100}%"></div>
-          </div>
+      return `
+        <div class="max-w-3xl mx-auto py-6 space-y-6 fade-in">
           
-          <div class="max-w-lg mx-auto text-center">
-            <div class="bg-white border border-gray-200 rounded-3xl shadow-sm p-10 mb-6">
-              <div class="text-sm font-medium text-gray-500 mb-6">Nhấn nút phát âm và chọn Hán tự đúng:</div>
-              <button onclick="speak('${w.hanzi}')" class="text-7xl hover:scale-110 transition-transform bounce-effect mb-6">🔊</button>
-              <div class="text-lg font-medium text-gray-600 bg-gray-100 rounded-lg inline-block px-4 py-2 border border-gray-200">
-                Nghĩa: <span class="font-bold text-green-700">${w.meaning}</span>
+          <!-- TOP BAR -->
+          <div class="glass-card rounded-3xl p-5 shadow-xl border border-white/20 flex items-center justify-between gap-4">
+            <div>
+              <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700">${t.level}</span>
+              <h2 class="text-base font-black text-slate-800 mt-1">${t.title}</h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="px-4 py-2 rounded-2xl bg-slate-900 text-amber-400 font-mono font-black text-base shadow-sm" id="testTimerDisplay">
+                --:--
               </div>
+              <button onclick="confirmExitTest()" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition-colors">
+                Thoát
+              </button>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4" id="listenOptions">
-              ${options.map(o => `
-                <button onclick="window._listenAnswer('${o.hanzi}', this)" 
-                        class="p-5 rounded-2xl border-2 border-gray-200 bg-white text-center transition-all hover:border-blue-500 hover:shadow-md card-hover"
-                        data-hanzi="${o.hanzi}">
-                  <div class="hanzi-medium font-bold text-gray-800">${o.hanzi}</div>
-                  <div class="text-sm font-bold text-blue-500 min-h-[20px] mt-1">${showPinyin ? o.pinyin : ''}</div>
-                </button>
-              `).join('')}
-            </div>
-            <div id="listenFeedback" class="mt-6 hidden"></div>
           </div>
-        `;
-        setTimeout(() => speak(w.hanzi), 300);
-      }
 
-      window._listenAnswer = function(chosen, btn) {
-        const w = words[idx];
-        const correct = chosen === w.hanzi;
-        const buttons = document.querySelectorAll('#listenOptions button');
-        buttons.forEach(b => {
-          b.onclick = null;
-          if (b.dataset.hanzi === w.hanzi) b.classList.add('border-green-500', 'bg-green-50');
-          else if (b === btn && !correct) b.classList.add('border-red-500', 'bg-red-50', 'shake');
-        });
+          <!-- PROGRESS BAR -->
+          <div class="w-full bg-slate-800/40 rounded-full h-2 overflow-hidden">
+            <div class="bg-gradient-to-r from-rose-500 to-amber-500 h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+          </div>
 
-        if (correct) { 
-          score++; 
-          recordAnswer(w.hanzi, true); 
-          createConfetti(btn); 
-        } else { 
-          recordAnswer(w.hanzi, false);
-          lives--;
-        }
+          <!-- QUESTION CARD -->
+          <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/20 space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span>Câu hỏi ${activeTestInstance.currentIndex + 1} / ${totalQ}</span>
+              <span class="text-rose-600">${q.type === 'mcq' ? 'Trắc nghiệm A B C D' : q.type === 'fill' ? 'Điền từ vào chỗ trống' : 'Sắp xếp câu'}</span>
+            </div>
 
-        const fb = document.getElementById('listenFeedback');
-        fb.classList.remove('hidden');
-        fb.innerHTML = correct
-          ? `<div class="text-green-600 font-bold text-xl pop">✅ Chính xác!</div>`
-          : `<div class="text-red-500 font-bold text-lg">❌ Sai! Đáp án là: <span class="text-gray-800 text-xl">${w.hanzi}</span> (${w.pinyin})</div>`;
+            <!-- PROMPT -->
+            <div class="text-center py-4">
+              <h3 class="text-2xl sm:text-3xl font-black text-slate-800 leading-snug">${q.prompt}</h3>
+              ${q.pinyin ? `<div class="text-sm font-bold text-rose-600 mt-2">Pinyin: ${q.pinyin}</div>` : ''}
+              <button onclick="speakChinese('${q.prompt}')" class="mt-3 text-2xl hover:scale-110 transition-transform">🔊</button>
+            </div>
 
-        setTimeout(() => {
-          if (lives <= 0) {
-            showGameComplete('Nghe & Chọn', words.length, score);
-            return;
-          }
-          idx++;
-          if (idx >= words.length) showGameComplete('Nghe & Chọn', words.length, score);
-          else render();
-        }, 1800);
-      };
-      render();
+            <!-- QUESTION CONTROLS BASED ON TYPE -->
+            <div class="pt-2">
+              ${q.type === 'mcq' ? renderTestMCQOptions(q) : ''}
+              ${q.type === 'fill' ? renderTestFillBlank(q) : ''}
+              ${q.type === 'arrange' ? renderTestArrangeWords(q) : ''}
+            </div>
+
+            <!-- NAVIGATION BUTTONS -->
+            <div class="pt-6 border-t border-slate-100 flex items-center justify-between">
+              <button onclick="navigateTest(-1)" ${activeTestInstance.currentIndex === 0 ? 'disabled class="opacity-40 cursor-not-allowed"' : ''} class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 transition-all">
+                &larr; Câu trước
+              </button>
+
+              ${activeTestInstance.currentIndex === totalQ - 1 ? `
+                <button onclick="submitTest(false)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm shadow-lg shadow-emerald-500/25 hover:opacity-95 transition-all">
+                  Nộp Bài Thi ✅
+                </button>
+              ` : `
+                <button onclick="navigateTest(1)" class="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all">
+                  Câu tiếp &rarr;
+                </button>
+              `}
+            </div>
+
+          </div>
+
+        </div>
+      `;
     }
 
-    // =================== GAME 7: FILL IN BLANK ===================
-    function initFillBlank() {
-      const wordsWithEx = filteredWords.filter(w => w.exampleCN && w.exampleCN.includes(w.hanzi));
-      if (wordsWithEx.length < 4) {
-        alert('❌ Không có đủ từ vựng kèm "câu ví dụ tiếng Trung" hợp lệ để chơi Điền Từ (cần ít nhất 4 câu chứa Hán tự đó).');
-        backToMenu();
-        return;
-      }
-      const words = shuffle(wordsWithEx).slice(0, Math.min(15, wordsWithEx.length));
-      let idx = 0; let score = 0;
-
-      function render() {
-        const w = words[idx];
-        const blanked = w.exampleCN.replace(new RegExp(w.hanzi, 'g'), '<span class="text-blue-500 border-b-2 border-blue-500 inline-block w-16 text-center">❓</span>');
-        const distractors = getRandomWords(w.hanzi, 3, wordsWithEx.length >= 4 ? wordsWithEx : allWords);
-        const options = shuffle([w, ...distractors]);
-
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-bold text-green-600">✅ ${score}/${idx}</span>
-              <span class="text-sm font-bold text-gray-500">${idx + 1} / ${words.length}</span>
-            </div>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
-            <div class="bg-gradient-to-r from-red-400 to-pink-500 h-2 rounded-full progress-bar" style="width: ${(idx + 1) / words.length * 100}%"></div>
-          </div>
-          
-          <div class="max-w-2xl mx-auto">
-            <div class="bg-white border border-gray-200 rounded-3xl shadow-sm p-8 text-center mb-6">
-              <div class="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wider">Điền từ còn thiếu vào câu ví dụ:</div>
-              <div class="text-2xl font-medium mb-6 text-gray-800 leading-relaxed">${blanked}</div>
-              <div class="text-base text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic">→ ${w.exampleVN}</div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4" id="fillOptions">
-              ${options.map(o => `
-                <button onclick="window._fillAnswer('${o.hanzi}', this)"
-                        class="p-5 rounded-2xl border-2 border-gray-200 bg-white text-center transition-all hover:border-blue-500 hover:shadow-md card-hover"
-                        data-hanzi="${o.hanzi}">
-                  <div class="hanzi-small font-bold text-gray-800">${o.hanzi}</div>
-                  <div class="text-sm font-medium text-gray-500 mt-1">${o.meaning}</div>
-                </button>
-              `).join('')}
-            </div>
-            <div id="fillFeedback" class="mt-6 hidden text-center"></div>
-          </div>
-        `;
-      }
-
-      window._fillAnswer = function(chosen, btn) {
-        const w = words[idx];
-        const correct = chosen === w.hanzi;
-        const buttons = document.querySelectorAll('#fillOptions button');
-        buttons.forEach(b => {
-          b.onclick = null;
-          if (b.dataset.hanzi === w.hanzi) b.classList.add('border-green-500', 'bg-green-50');
-          else if (b === btn && !correct) b.classList.add('border-red-500', 'bg-red-50', 'shake');
-        });
-
-        if (correct) { score++; recordAnswer(w.hanzi, true); createConfetti(btn); }
-        else recordAnswer(w.hanzi, false);
-
-        const fb = document.getElementById('fillFeedback');
-        fb.classList.remove('hidden');
-        fb.innerHTML = correct
-          ? `<div class="text-green-600 font-bold text-xl pop">✅ Chính xác!</div><div class="text-base text-gray-700 mt-2 font-medium">${w.exampleCN}</div>`
-          : `<div class="text-red-500 font-bold text-lg">❌ Sai! Đáp án là: <span class="text-gray-900">${w.hanzi}</span> (${w.meaning})</div><div class="text-base text-gray-700 mt-2">${w.exampleCN}</div>`;
-
-        setTimeout(() => {
-          idx++;
-          if (idx >= words.length) showGameComplete('Điền từ', words.length, score);
-          else render();
-        }, 2200);
-      };
-      render();
+    function renderTestMCQOptions(q) {
+      const selected = activeTestInstance.userAnswers[activeTestInstance.currentIndex];
+      return `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+          ${q.options.map((opt, i) => {
+            const isSel = selected === opt;
+            const letters = ['A', 'B', 'C', 'D'];
+            return `
+              <button onclick="selectTestAnswer('${opt}')" class="p-4 rounded-2xl border-2 text-left font-bold text-sm transition-all flex items-center gap-3 ${isSel ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm' : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'}">
+                <span class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${isSel ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-500'}">
+                  ${letters[i]}
+                </span>
+                <span class="text-base font-semibold">${opt}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
-    // =================== GAME 8: MEMORY GAME ===================
-    function initMemory() {
-      const count = Math.min(6, Math.floor(filteredWords.length));
-      const words = shuffle(filteredWords).slice(0, count);
+    function renderTestFillBlank(q) {
+      const selected = activeTestInstance.userAnswers[activeTestInstance.currentIndex] || '';
+      return `
+        <div class="max-w-md mx-auto space-y-3">
+          <input type="text" id="testFillInput" value="${selected}" oninput="activeTestInstance.userAnswers[activeTestInstance.currentIndex] = this.value.trim()" placeholder="Nhập từ Hán tự hoặc Pinyin..." 
+                 class="w-full p-4 rounded-2xl border-2 border-slate-200 text-center font-bold text-lg text-slate-800 focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all">
+          ${q.hint ? `<p class="text-xs text-center text-slate-400 font-medium">💡 Gợi ý: ${q.hint}</p>` : ''}
+        </div>
+      `;
+    }
+
+    function renderTestArrangeWords(q) {
+      const currentAnswer = activeTestInstance.userAnswers[activeTestInstance.currentIndex] || '';
+      const selectedParts = currentAnswer ? currentAnswer.split(' ') : [];
       
-      let cards = [];
-      words.forEach(w => {
-        cards.push({ id: w.hanzi + '_h', hanzi: w.hanzi, display: w.hanzi, type: 'hanzi', pinyin: w.pinyin });
-        cards.push({ id: w.hanzi + '_m', hanzi: w.hanzi, display: w.meaning, type: 'meaning' });
-      });
-      cards = shuffle(cards);
-
-      let flipped = []; let matched = new Set(); let moves = 0;
-
-      function render() {
-        const area = document.getElementById('gameArea');
-        area.innerHTML = `
-          <div class="flex items-center justify-between mb-6">
-            <button onclick="backToMenu()" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Quay lại Menu</button>
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-bold text-green-600">✅ ${matched.size}/${count} cặp</span>
-              <span class="text-sm font-bold text-gray-500">Lượt: ${moves}</span>
-            </div>
-          </div>
-          <h3 class="text-center text-xl font-bold mb-6 text-gray-800">🧠 Lật thẻ & Ghép cặp Hán tự với Nghĩa</h3>
-          <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            ${cards.map((c, i) => `
-              <div onclick="window._memFlip(${i})" 
-                   class="memory-card cursor-pointer aspect-square rounded-2xl border-2 flex items-center justify-center p-2 transition-all shadow-sm
-                          ${matched.has(c.hanzi) ? 'bg-green-50 border-green-500 opacity-60 pointer-events-none' : 'bg-white border-gray-200 hover:border-blue-400 card-hover'}"
-                   data-idx="${i}" id="mem-${i}">
-                <div class="text-center ${matched.has(c.hanzi) || flipped.includes(i) ? '' : 'hidden'}" id="mem-face-${i}">
-                  ${c.type === 'hanzi' 
-                    ? `<div class="hanzi-small font-bold text-gray-800">${c.display}</div><div class="text-sm font-bold text-blue-500 min-h-[20px] mt-1">${showPinyin ? c.pinyin : ''}</div>` 
-                    : `<div class="text-sm font-bold text-gray-800 leading-snug px-1">${c.display}</div>`}
-                </div>
-                <div class="${matched.has(c.hanzi) || flipped.includes(i) ? 'hidden' : ''}" id="mem-back-${i}">
-                  <div class="text-4xl text-gray-300">🀄</div>
-                </div>
-              </div>
+      return `
+        <div class="max-w-lg mx-auto space-y-6 text-center">
+          
+          <!-- ANSWER CONTAINER (DROP ZONE) -->
+          <div class="min-h-[70px] p-3 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/50 flex flex-wrap items-center justify-center gap-2">
+            ${selectedParts.length === 0 ? `
+              <span class="text-xs text-slate-400 font-medium">Nhấn vào các từ bên dưới để ghép vào đây</span>
+            ` : selectedParts.map((p, i) => `
+              <button onclick="removeArrangedPart(${i})" class="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-base shadow-sm hover:bg-rose-700 transition-all">
+                ${p} &times;
+              </button>
             `).join('')}
           </div>
-        `;
-      }
 
-      window._memFlip = function(idx) {
-        if (flipped.includes(idx) || matched.has(cards[idx].hanzi) || flipped.length >= 2) return;
-        
-        flipped.push(idx);
-        document.getElementById(`mem-face-${idx}`).classList.remove('hidden');
-        document.getElementById(`mem-back-${idx}`).classList.add('hidden');
-        document.getElementById(`mem-${idx}`).classList.add('border-blue-500', 'bg-blue-50');
+          <!-- SOURCE PARTS -->
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            ${q.parts.map(p => `
+              <button onclick="addArrangedPart('${p}')" class="px-4 py-2.5 rounded-xl bg-white border-2 border-slate-200 text-slate-800 font-bold text-base hover:border-slate-400 shadow-sm transition-all transform active:scale-95">
+                ${p}
+              </button>
+            `).join('')}
+          </div>
 
-        if (flipped.length === 2) {
-          moves++;
-          const [a, b] = flipped;
-          if (cards[a].hanzi === cards[b].hanzi && a !== b) {
-            matched.add(cards[a].hanzi); recordAnswer(cards[a].hanzi, true);
-            setTimeout(() => {
-              flipped = [];
-              if (matched.size >= count) showGameComplete('Trí nhớ', count, count);
-              else render();
-            }, 600);
-          } else {
-            recordAnswer(cards[a].hanzi, false);
-            setTimeout(() => {
-              document.getElementById(`mem-${a}`).classList.remove('border-blue-500', 'bg-blue-50');
-              document.getElementById(`mem-${b}`).classList.remove('border-blue-500', 'bg-blue-50');
-              flipped = [];
-              render();
-            }, 1200);
-          }
-        }
-      };
-      render();
+          <button onclick="activeTestInstance.userAnswers[activeTestInstance.currentIndex] = ''; renderApp();" class="text-xs text-slate-400 hover:text-rose-600 font-semibold underline">
+            Làm lại câu này
+          </button>
+        </div>
+      `;
     }
 
-    // =================== GAME COMPLETE SCREEN ===================
-    function showGameComplete(gameName, total, score) {
-      score = score || 0;
-      const pct = total > 0 ? Math.round(score / total * 100) : 0;
-      let emoji, message, color;
-      if (pct >= 90) { emoji = '🏆'; message = 'Xuất sắc! Bạn quá đỉnh!'; color = 'text-yellow-500'; }
-      else if (pct >= 70) { emoji = '🌟'; message = 'Rất tốt! Tiếp tục phát huy nhé!'; color = 'text-blue-500'; }
-      else if (pct >= 50) { emoji = '💪'; message = 'Khá tốt! Hãy cố gắng thêm một chút nữa!'; color = 'text-green-500'; }
-      else { emoji = '📚'; message = 'Cần ôn tập thêm! Đừng nản chí nhé!'; color = 'text-orange-500'; }
+    function selectTestAnswer(val) {
+      activeTestInstance.userAnswers[activeTestInstance.currentIndex] = val;
+      renderApp();
+    }
 
-      const area = document.getElementById('gameArea');
-      area.innerHTML = `
-        <div class="max-w-md mx-auto text-center bg-white border border-gray-200 rounded-3xl shadow-lg p-10 fade-in relative overflow-hidden" id="completeCard">
-          <div class="text-7xl mb-6 bounce-effect">${emoji}</div>
-          <h2 class="text-3xl font-black mb-2 text-gray-800">Hoàn thành!</h2>
-          <h3 class="text-lg font-medium text-gray-500 mb-8 uppercase tracking-widest">${gameName}</h3>
-          
-          <div class="grid grid-cols-3 gap-4 mb-8">
-            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-              <div class="text-3xl font-black text-green-500 mb-1">${score}</div>
-              <div class="text-sm font-medium text-gray-500 uppercase">Đúng</div>
+    function addArrangedPart(part) {
+      const curr = activeTestInstance.userAnswers[activeTestInstance.currentIndex] || '';
+      const parts = curr ? curr.split(' ') : [];
+      parts.push(part);
+      activeTestInstance.userAnswers[activeTestInstance.currentIndex] = parts.join(' ');
+      renderApp();
+    }
+
+    function removeArrangedPart(index) {
+      const curr = activeTestInstance.userAnswers[activeTestInstance.currentIndex] || '';
+      const parts = curr.split(' ');
+      parts.splice(index, 1);
+      activeTestInstance.userAnswers[activeTestInstance.currentIndex] = parts.join(' ');
+      renderApp();
+    }
+
+    function navigateTest(dir) {
+      activeTestInstance.currentIndex += dir;
+      renderApp();
+    }
+
+    function confirmExitTest() {
+      if (confirm('Bạn có chắc muốn thoát bài test dở dang? Điểm sẽ không được lưu.')) {
+        clearInterval(activeTestInstance.timerInterval);
+        activeTestInstance = null;
+        currentRoute = 'student';
+        renderApp();
+      }
+    }
+
+    function submitTest(isAutoTimeout = false) {
+      clearInterval(activeTestInstance.timerInterval);
+      const t = activeTestInstance.test;
+      let correct = 0;
+      const details = [];
+
+      t.questions.forEach((q, i) => {
+        const userAns = (activeTestInstance.userAnswers[i] || '').trim().toLowerCase();
+        const correctAns = q.answer.trim().toLowerCase();
+        const isRight = userAns === correctAns;
+        if (isRight) correct++;
+        details.push({
+          qIndex: i,
+          prompt: q.prompt,
+          studentAnswer: activeTestInstance.userAnswers[i] || '(Chưa làm)',
+          correctAnswer: q.answer,
+          explanation: q.explanation || '',
+          correct: isRight
+        });
+      });
+
+      const score = Math.round((correct / t.questions.length) * 100);
+      const submissionId = 'sub_' + Date.now();
+
+      db = loadDB();
+      if (!db.submissions) db.submissions = [];
+      db.submissions.unshift({
+        id: submissionId,
+        testId: t.id,
+        studentId: currentUser.id,
+        studentName: currentUser.fullName,
+        level: currentUser.level,
+        score: score,
+        totalQuestions: t.questions.length,
+        correctCount: correct,
+        submittedAt: new Date().toLocaleString('vi-VN'),
+        details: details
+      });
+
+      // Update student EXP and badges
+      const studentIdx = db.users.findIndex(u => u.id === currentUser.id);
+      if (studentIdx !== -1) {
+        db.users[studentIdx].exp = (db.users[studentIdx].exp || 0) + (score >= 50 ? score : 20);
+        if (!db.users[studentIdx].badges) db.users[studentIdx].badges = [];
+        if (!db.users[studentIdx].badges.includes('first_test')) db.users[studentIdx].badges.push('first_test');
+        if (score === 100 && !db.users[studentIdx].badges.includes('perfect_score')) db.users[studentIdx].badges.push('perfect_score');
+      }
+
+      saveDB(db);
+      playSound(score >= 50 ? 'victory' : 'wrong');
+
+      // Show result screen
+      renderTestResultModal(t, score, correct, t.questions.length, details);
+      activeTestInstance = null;
+      currentRoute = 'student';
+      renderApp();
+    }
+
+    function renderTestResultModal(test, score, correct, total, details) {
+      const isPass = score >= 50;
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-white/20 pop-in space-y-6 text-center max-h-[90vh] overflow-y-auto">
+            
+            <div class="text-6xl">${isPass ? '🎉' : '📚'}</div>
+            <div>
+              <h2 class="text-2xl font-black text-slate-800">${isPass ? 'Chúc Mừng Bạn!' : 'Cần Cố Gắng Thêm!'}</h2>
+              <p class="text-xs text-slate-500 mt-1">Hoàn thành bài: ${test.title}</p>
             </div>
-            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-              <div class="text-3xl font-black text-gray-700 mb-1">${total}</div>
-              <div class="text-sm font-medium text-gray-500 uppercase">Tổng</div>
+
+            <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-2 gap-4">
+              <div>
+                <div class="text-3xl font-black ${isPass ? 'text-emerald-600' : 'text-rose-600'}">${score}</div>
+                <div class="text-xs font-bold text-slate-400 uppercase mt-0.5">Điểm Số (/100)</div>
+              </div>
+              <div>
+                <div class="text-3xl font-black text-slate-800">${correct}/${total}</div>
+                <div class="text-xs font-bold text-slate-400 uppercase mt-0.5">Số Câu Đúng</div>
+              </div>
             </div>
-            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-              <div class="text-3xl font-black text-blue-500 mb-1">${pct}%</div>
-              <div class="text-sm font-medium text-gray-500 uppercase">Tỷ lệ</div>
+
+            <!-- DETAIL ANSWERS REVIEW -->
+            <div class="text-left space-y-3">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Xem lại bài làm chi tiết:</h4>
+              <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                ${details.map((d, i) => `
+                  <div class="p-3 rounded-xl border ${d.correct ? 'border-emerald-200 bg-emerald-50/50' : 'border-rose-200 bg-rose-50/50'} text-xs space-y-1">
+                    <div class="font-bold text-slate-800">Câu ${i + 1}: ${d.prompt}</div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold text-slate-600">Bạn chọn: <b class="${d.correct ? 'text-emerald-600' : 'text-rose-600'}">${d.studentAnswer}</b></span>
+                      ${d.correct ? '✅' : `❌ <span class="text-slate-500 font-medium">(Đáp án: <b class="text-emerald-700">${d.correctAnswer}</b>)</span>`}
+                    </div>
+                    ${d.explanation ? `<div class="text-[11px] text-slate-500 italic">💡 ${d.explanation}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
             </div>
-          </div>
-          
-          <p class="text-lg font-bold ${color} mb-8 bg-gray-50 p-4 rounded-xl inline-block">${message}</p>
-          
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onclick="startGame('${currentGame}')" class="px-8 py-4 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 shadow-md transition-all">
-              🔄 Chơi lại
-            </button>
-            <button onclick="backToMenu()" class="px-8 py-4 rounded-xl bg-white border-2 border-gray-200 text-gray-700 font-bold text-lg hover:bg-gray-50 hover:border-gray-300 transition-all">
-              📋 Về Menu
+
+            <button onclick="document.getElementById('modalHost').innerHTML = '';" class="w-full py-3.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
+              Đóng & Quay Về Bảng Điều Khiển
             </button>
           </div>
         </div>
       `;
-      createConfetti(document.getElementById('completeCard'));
     }
 
-    // =================== INIT ===================
-    loadProgress();
-    updateStats();
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && currentGame) backToMenu(); });
+    // ==========================================
+    // 9. STUDENT FILE UPLOAD & WORD PARSER (SHEETJS)
+    // ==========================================
+    function handleStudentUploadFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+          if (!rows || rows.length < 2) {
+            alert('File rỗng hoặc không đủ dữ liệu.');
+            return;
+          }
+
+          // Scan columns for Chinese characters
+          let hanziIdx = -1;
+          for (let r = 0; r < Math.min(10, rows.length); r++) {
+            const row = rows[r];
+            for (let c = 0; c < row.length; c++) {
+              if (/[\u4e00-\u9fff]/.test(String(row[c]))) {
+                hanziIdx = c;
+                break;
+              }
+            }
+            if (hanziIdx !== -1) break;
+          }
+
+          if (hanziIdx === -1) {
+            alert('Không tìm thấy cột chữ Hán trong file Excel!');
+            return;
+          }
+
+          const parsedWords = [];
+          for (let r = 1; r < rows.length; r++) {
+            const row = rows[r];
+            if (!row || row.length <= hanziIdx) continue;
+            const hz = String(row[hanziIdx] || '').trim();
+            if (!hz || !/[\u4e00-\u9fff]/.test(hz)) continue;
+
+            const py = String(row[hanziIdx + 1] || '').trim() || hz;
+            const type = String(row[hanziIdx + 2] || '').trim() || 'Từ vựng';
+            const mean = String(row[hanziIdx + 3] || '').trim() || 'Chưa có nghĩa';
+            const exCN = String(row[hanziIdx + 4] || '').trim();
+            const exVN = String(row[hanziIdx + 6] || '').trim();
+
+            parsedWords.push({
+              hanzi: hz,
+              pinyin: py,
+              type: type,
+              meaning: mean,
+              exampleCN: exCN,
+              exampleVN: exVN
+            });
+          }
+
+          if (parsedWords.length === 0) {
+            alert('Không trích xuất được từ vựng hợp lệ.');
+            return;
+          }
+
+          // Save to student profile in database!
+          db = loadDB();
+          const studentIdx = db.users.findIndex(u => u.id === currentUser.id);
+          if (studentIdx !== -1) {
+            db.users[studentIdx].currentFile = {
+              fileName: file.name,
+              wordCount: parsedWords.length,
+              words: parsedWords
+            };
+            saveDB(db);
+            currentUser = db.users[studentIdx];
+            showToast(`Đã nạp thành công ${parsedWords.length} từ từ file ${file.name}!`, '🎉');
+            renderApp();
+          }
+
+        } catch (err) {
+          console.error(err);
+          alert('Lỗi đọc file Excel: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ==========================================
+    // 10. VOCAB ARENA (THE 8 GAME MODES ENGINE)
+    // ==========================================
+    let arenaWords = [];
+    let arenaCurrentGame = null;
+    let arenaShowPinyin = true;
+
+    function openVocabArena() {
+      if (!currentUser.currentFile || !currentUser.currentFile.words || currentUser.currentFile.words.length === 0) {
+        alert('Bạn chưa nạp file từ vựng nào! Vui lòng nạp file Excel trước khi chơi game.');
+        setStudentTab('vocab');
+        return;
+      }
+      arenaWords = currentUser.currentFile.words;
+      currentRoute = 'game_arena';
+      renderApp();
+    }
+
+    function renderVocabArenaView() {
+      return `
+        <div class="fade-in space-y-6">
+          
+          <!-- TOP ARENA BAR -->
+          <div class="glass-card rounded-3xl p-5 shadow-xl border border-white/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <button onclick="currentRoute = 'student'; renderApp();" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all">
+                &larr; Về Bảng Điều Khiển
+              </button>
+              <div>
+                <h1 class="text-xl font-black text-slate-800">Phòng Luyện Game Từ Vựng</h1>
+                <p class="text-xs text-slate-500">Đang luyện: <b>${currentUser.currentFile.fileName}</b> (${arenaWords.length} từ)</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button onclick="arenaShowPinyin = !arenaShowPinyin; renderApp();" class="px-4 py-2 rounded-xl text-xs font-bold border transition-all ${arenaShowPinyin ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-slate-100 border-slate-300 text-slate-500'}">
+                🔤 Pinyin: ${arenaShowPinyin ? 'BẬT' : 'TẮT'}
+              </button>
+              <button onclick="openWordBankModal()" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all">
+                📖 Kho Từ Vựng
+              </button>
+            </div>
+          </div>
+
+          <!-- GAME CANVAS OR MENU -->
+          <div id="arenaCanvas">
+            ${arenaCurrentGame ? '' : renderArenaGameMenu()}
+          </div>
+
+        </div>
+      `;
+    }
+
+    function renderArenaGameMenu() {
+      const games = [
+        { id: 'flashcard', name: 'Thẻ Ghi Nhớ (Flashcard)', icon: '🃏', desc: 'Lật thẻ 2 mặt ghi nhớ chữ Hán & nghĩa' },
+        { id: 'quiz', name: 'Trắc Nghiệm 4 Đáp Án', icon: '❓', desc: 'Chọn đáp án đúng nhanh, có 3 trái tim ❤️' },
+        { id: 'matching', name: 'Nối Từ Hán - Nghĩa', icon: '🔗', desc: 'Ghép cặp từ tương ứng càng nhanh càng tốt' },
+        { id: 'typing', name: 'Luyện Gõ Pinyin', icon: '⌨️', desc: 'Nhìn chữ Hán gõ chính xác pinyin' },
+        { id: 'speed', name: 'Thử Thách Tốc Độ 60s', icon: '⚡', desc: 'Trả lời tối đa số từ trong 60 giây' },
+        { id: 'listen', name: 'Nghe & Chọn Hán Tự', icon: '🎧', desc: 'Luyện tai nghe phát âm chuẩn giọng Bắc Kinh' },
+        { id: 'fillblank', name: 'Điền Từ Vào Câu', icon: '✏️', desc: 'Chọn từ phù hợp vào câu ví dụ ngữ cảnh' },
+        { id: 'memory', name: 'Trí Nhớ Lật Thẻ', icon: '🧠', desc: 'Lật tìm các cặp thẻ Hán tự và nghĩa giống nhau' }
+      ];
+
+      return `
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          ${games.map(g => `
+            <div onclick="startArenaGame('${g.id}')" class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 card-hover cursor-pointer space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="text-4xl mb-3">${g.icon}</div>
+                <h3 class="font-black text-slate-800 text-base leading-snug">${g.name}</h3>
+                <p class="text-xs text-slate-500 mt-1">${g.desc}</p>
+              </div>
+              <div class="text-xs font-bold text-rose-600 flex items-center gap-1 pt-3 border-t border-slate-100">
+                Chơi ngay &rarr;
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function startArenaGame(gameId) {
+      arenaCurrentGame = gameId;
+      renderApp();
+      const canvas = document.getElementById('arenaCanvas');
+      if (gameId === 'flashcard') initArenaFlashcard(canvas);
+      else if (gameId === 'quiz') initArenaQuiz(canvas);
+      else if (gameId === 'speed') initArenaSpeed(canvas);
+      else if (gameId === 'listen') initArenaListen(canvas);
+      else {
+        // Fallback demo for remaining modes
+        canvas.innerHTML = `
+          <div class="glass-card rounded-3xl p-10 text-center space-y-4">
+            <h2 class="text-xl font-bold">Chế độ đang tải...</h2>
+            <button onclick="arenaCurrentGame = null; renderApp();" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs">Về Menu Game</button>
+          </div>
+        `;
+      }
+    }
+
+    // GAME: FLASHCARD
+    function initArenaFlashcard(canvas) {
+      const words = [...arenaWords];
+      let idx = 0;
+      let isFlipped = false;
+
+      function draw() {
+        const w = words[idx];
+        canvas.innerHTML = `
+          <div class="max-w-md mx-auto space-y-6 text-center">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="hover:text-rose-600">&larr; Chọn Game Khác</button>
+              <span>${idx + 1} / ${words.length}</span>
+            </div>
+
+            <div onclick="window._flipFC()" class="glass-card cursor-pointer rounded-3xl p-10 min-h-[300px] flex flex-col items-center justify-center shadow-2xl border border-white/20 card-hover transition-all">
+              ${!isFlipped ? `
+                <div class="hanzi-huge font-black text-slate-800">${w.hanzi}</div>
+                <div class="text-base font-bold text-rose-600 mt-2 min-h-[24px]">${arenaShowPinyin ? w.pinyin : ''}</div>
+                <div class="text-xs font-bold text-slate-400 mt-6">Bấm vào thẻ để lật xem nghĩa &rarr;</div>
+              ` : `
+                <div class="text-2xl font-black text-emerald-600 mb-2">${w.meaning}</div>
+                <div class="text-xs font-bold text-slate-400">(${w.type})</div>
+                ${w.exampleCN ? `<div class="text-xs text-slate-600 mt-4 italic">${w.exampleCN}</div>` : ''}
+              `}
+            </div>
+
+            <div class="flex items-center justify-center gap-3">
+              <button onclick="speakChinese('${w.hanzi}')" class="p-3.5 rounded-2xl bg-white border border-slate-200 text-xl shadow-sm hover:scale-110 transition-transform">🔊</button>
+              <button onclick="window._prevFC()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all">Trước</button>
+              <button onclick="window._nextFC()" class="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition-all">Tiếp theo &rarr;</button>
+            </div>
+          </div>
+        `;
+      }
+
+      window._flipFC = () => { isFlipped = !isFlipped; draw(); };
+      window._prevFC = () => { if (idx > 0) { idx--; isFlipped = false; draw(); } };
+      window._nextFC = () => { if (idx < words.length - 1) { idx++; isFlipped = false; draw(); } else { alert('Bạn đã xem hết các từ!'); } };
+      draw();
+    }
+
+    // GAME: QUIZ
+    function initArenaQuiz(canvas) {
+      const words = [...arenaWords];
+      let idx = 0;
+      let score = 0;
+      let lives = 3;
+
+      function draw() {
+        const w = words[idx];
+        const others = arenaWords.filter(x => x.hanzi !== w.hanzi).sort(() => 0.5 - Math.random()).slice(0, 3);
+        const options = [w, ...others].sort(() => 0.5 - Math.random());
+
+        canvas.innerHTML = `
+          <div class="max-w-lg mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="text-slate-400 hover:text-rose-600">&larr; Dừng chơi</button>
+              <span class="text-base tracking-widest">${'❤️'.repeat(lives)}</span>
+              <span class="text-slate-400">${idx + 1} / ${words.length}</span>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl border border-white/20">
+              <div class="text-xs font-bold text-slate-400 uppercase mb-2">Chọn nghĩa đúng của từ:</div>
+              <div class="hanzi-large font-black text-slate-800">${w.hanzi}</div>
+              <div class="text-sm font-bold text-rose-600 mt-1 min-h-[20px]">${arenaShowPinyin ? w.pinyin : ''}</div>
+              <button onclick="speakChinese('${w.hanzi}')" class="mt-2 text-xl hover:scale-110 transition-transform">🔊</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" id="arenaQuizOpts">
+              ${options.map(opt => `
+                <button onclick="window._answerArenaQuiz('${opt.hanzi}', '${w.hanzi}', this)" class="p-4 rounded-2xl bg-white border-2 border-slate-200 font-bold text-sm text-slate-700 hover:border-rose-400 card-hover transition-all text-center">
+                  ${opt.meaning}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      window._answerArenaQuiz = (chosen, correct, btn) => {
+        const isRight = chosen === correct;
+        if (isRight) {
+          btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+          playSound('correct');
+          showFloatScore('+10', 'text-emerald-500');
+          score++;
+        } else {
+          btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-700', 'shake');
+          playSound('wrong');
+          lives--;
+        }
+
+        setTimeout(() => {
+          if (lives <= 0) {
+            alert(`Hết mạng! Điểm của bạn: ${score}`);
+            arenaCurrentGame = null;
+            renderApp();
+            return;
+          }
+          idx++;
+          if (idx >= words.length) {
+            alert(`Hoàn thành! Bạn trả lời đúng ${score}/${words.length} từ.`);
+            arenaCurrentGame = null;
+            renderApp();
+          } else {
+            draw();
+          }
+        }, 800);
+      };
+
+      draw();
+    }
+
+    // GAME: SPEED
+    function initArenaSpeed(canvas) {
+      let timeLeft = 60;
+      let score = 0;
+      let timer = setInterval(() => {
+        timeLeft--;
+        const el = document.getElementById('arenaSpeedTimer');
+        if (el) el.textContent = `⏱️ ${timeLeft}s`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          alert(`Hết giờ! Bạn ghi được ${score} điểm!`);
+          arenaCurrentGame = null;
+          renderApp();
+        }
+      }, 1000);
+
+      function draw() {
+        const w = arenaWords[Math.floor(Math.random() * arenaWords.length)];
+        const others = arenaWords.filter(x => x.hanzi !== w.hanzi).sort(() => 0.5 - Math.random()).slice(0, 3);
+        const options = [w, ...others].sort(() => 0.5 - Math.random());
+
+        canvas.innerHTML = `
+          <div class="max-w-md mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <button onclick="clearInterval(${timer}); arenaCurrentGame = null; renderApp();" class="text-slate-400 hover:text-rose-600">&larr; Dừng sớm</button>
+              <span id="arenaSpeedTimer" class="text-lg font-black text-rose-500">⏱️ ${timeLeft}s</span>
+              <span class="text-base font-black text-amber-500">⭐ ${score}</span>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl border border-white/20">
+              <div class="hanzi-large font-black text-slate-800">${w.hanzi}</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              ${options.map(opt => `
+                <button onclick="window._answerArenaSpeed('${opt.hanzi}', '${w.hanzi}')" class="p-4 rounded-2xl bg-white border-2 border-slate-200 font-bold text-sm text-slate-700 hover:border-rose-400 transition-all text-center">
+                  ${opt.meaning}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      window._answerArenaSpeed = (chosen, correct) => {
+        if (chosen === correct) {
+          playSound('correct');
+          score += 10;
+        } else {
+          playSound('wrong');
+        }
+        draw();
+      };
+
+      draw();
+    }
+
+    // GAME: LISTEN
+    function initArenaListen(canvas) {
+      let idx = 0;
+      let score = 0;
+
+      function draw() {
+        const w = arenaWords[idx];
+        const others = arenaWords.filter(x => x.hanzi !== w.hanzi).sort(() => 0.5 - Math.random()).slice(0, 3);
+        const options = [w, ...others].sort(() => 0.5 - Math.random());
+
+        canvas.innerHTML = `
+          <div class="max-w-md mx-auto space-y-6 text-center">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="hover:text-rose-600">&larr; Menu</button>
+              <span>${idx + 1} / ${arenaWords.length}</span>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 shadow-xl border border-white/20 space-y-4">
+              <div class="text-xs font-bold text-slate-400 uppercase">Nghe và chọn Hán tự đúng:</div>
+              <button onclick="speakChinese('${w.hanzi}')" class="text-6xl hover:scale-110 transition-transform">🔊</button>
+              <div class="text-sm font-bold text-slate-600">Nghĩa: <b>${w.meaning}</b></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              ${options.map(opt => `
+                <button onclick="window._answerArenaListen('${opt.hanzi}', '${w.hanzi}')" class="p-5 rounded-2xl bg-white border-2 border-slate-200 font-bold text-xl text-slate-800 hover:border-rose-400 transition-all">
+                  ${opt.hanzi}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        setTimeout(() => speakChinese(w.hanzi), 300);
+      }
+
+      window._answerArenaListen = (chosen, correct) => {
+        if (chosen === correct) {
+          playSound('correct');
+          score++;
+        } else {
+          playSound('wrong');
+        }
+        idx++;
+        if (idx >= arenaWords.length) {
+          alert(`Hoàn thành! Bạn đúng ${score}/${arenaWords.length}`);
+          arenaCurrentGame = null;
+          renderApp();
+        } else {
+          draw();
+        }
+      };
+
+      draw();
+    }
+
+    // ==========================================
+    // 11. MODALS: ADD STUDENT, CREATE TEST, WORD BANK
+    // ==========================================
+    function openAddStudentModal() {
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-white/20 pop-in space-y-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="text-lg font-black text-slate-800">Thêm Học Viên Mới</h3>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <form onsubmit="handleCreateStudentSubmit(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Họ và Tên</label>
+                <input type="text" id="newStudentName" required placeholder="Ví dụ: Nguyễn Văn A" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Tên Đăng Nhập</label>
+                <input type="text" id="newStudentUsername" required placeholder="Ví dụ: hocvien4" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Mật Khẩu</label>
+                <input type="text" id="newStudentPassword" value="123" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Cấp Độ HSK</label>
+                <select id="newStudentLevel" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold bg-white outline-none focus:border-rose-500">
+                  <option value="HSK1">HSK 1 (Sơ cấp 1)</option>
+                  <option value="HSK2">HSK 2 (Sơ cấp 2)</option>
+                  <option value="HSK3">HSK 3 (Trung cấp 1)</option>
+                </select>
+              </div>
+              <button type="submit" class="w-full py-3.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
+                Tạo Tài Khoản Học Viên &rarr;
+              </button>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleCreateStudentSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('newStudentName').value.trim();
+      const user = document.getElementById('newStudentUsername').value.trim();
+      const pass = document.getElementById('newStudentPassword').value.trim();
+      const level = document.getElementById('newStudentLevel').value;
+
+      db = loadDB();
+      if (db.users.some(u => u.username.toLowerCase() === user.toLowerCase())) {
+        alert('Tên đăng nhập đã tồn tại!');
+        return;
+      }
+
+      db.users.push({
+        id: 'u_' + Date.now(),
+        fullName: name,
+        username: user,
+        password: pass,
+        role: 'student',
+        level: level,
+        exp: 0,
+        streak: 0,
+        currentFile: null,
+        vocabStats: {},
+        badges: [],
+        createdAt: new Date().toISOString().split('T')[0]
+      });
+
+      saveDB(db);
+      document.getElementById('modalHost').innerHTML = '';
+      showToast(`Đã thêm học viên ${name}!`, '🎉');
+      renderApp();
+    }
+
+    function deleteStudent(id) {
+      if (confirm('Bạn có chắc muốn xoá học viên này?')) {
+        db = loadDB();
+        db.users = db.users.filter(u => u.id !== id);
+        saveDB(db);
+        showToast('Đã xoá học viên.', '🗑️');
+        renderApp();
+      }
+    }
+
+    function viewStudentDetail(id) {
+      db = loadDB();
+      const s = db.users.find(u => u.id === id);
+      if (!s) return;
+
+      const mySubs = (db.submissions || []).filter(sub => sub.studentId === s.id);
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 class="text-lg font-black text-slate-800">${s.fullName}</h3>
+                <span class="text-xs font-bold text-rose-600">${s.level} &bull; @${s.username}</span>
+              </div>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="p-3 bg-slate-50 rounded-xl">
+                <div class="text-xl font-black text-amber-600">⭐ ${s.exp || 0}</div>
+                <div class="text-xs text-slate-400">Điểm EXP</div>
+              </div>
+              <div class="p-3 bg-slate-50 rounded-xl">
+                <div class="text-xl font-black text-emerald-600">🔥 ${s.streak || 0}</div>
+                <div class="text-xs text-slate-400">Ngày học liên tục</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lịch sử bài kiểm tra (${mySubs.length}):</h4>
+              <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                ${mySubs.length === 0 ? '<div class="text-xs text-slate-400 italic">Học viên chưa làm bài test nào.</div>' : mySubs.map(sub => `
+                  <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs font-bold">
+                    <span>${sub.submittedAt}</span>
+                    <span class="${sub.score >= 50 ? 'text-emerald-600' : 'text-rose-600'}">${sub.score}/100đ (${sub.correctCount}/${sub.totalQuestions} câu)</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <button onclick="document.getElementById('modalHost').innerHTML=''" class="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-xs">Đóng</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // CREATE TEST MODAL
+    function openCreateTestModal() {
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="text-lg font-black text-slate-800">Soạn Đề Mini Test Cho Học Viên</h3>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tên Bài Test</label>
+                  <input type="text" id="newTestTitle" placeholder="Ví dụ: Mini Test 15 phút HSK 1..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cấp Độ HSK</label>
+                  <select id="newTestLevel" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white">
+                    <option value="HSK1">HSK 1</option>
+                    <option value="HSK2">HSK 2</option>
+                    <option value="HSK3">HSK 3</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Thời Gian Làm Bài (Phút)</label>
+                <input type="number" id="newTestDuration" value="10" min="1" max="60" class="w-32 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold">
+              </div>
+
+              <!-- QUESTIONS BUILDER CONTAINER -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-bold text-slate-500 uppercase">Danh Sách Câu Hỏi (<span id="testQCount">1</span>)</label>
+                  <button type="button" onclick="addNewQuestionRow()" class="text-xs font-bold text-rose-600 hover:underline">+ Thêm Câu Hỏi</button>
+                </div>
+                <div id="questionsBuilderContainer" class="space-y-3">
+                  <!-- Row 1 -->
+                  <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 q-builder-item">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+                      <span>Câu #1</span>
+                      <select class="q-type-select text-xs font-bold px-2 py-1 rounded-lg border border-slate-200">
+                        <option value="mcq">Trắc nghiệm A B C D</option>
+                        <option value="fill">Điền từ vào chỗ trống</option>
+                      </select>
+                    </div>
+                    <input type="text" placeholder="Nội dung câu hỏi (VD: Từ '你好' có nghĩa là gì?)" class="q-prompt w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
+                    <div class="grid grid-cols-2 gap-2">
+                      <input type="text" placeholder="Đáp án A" class="q-opt-a px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                      <input type="text" placeholder="Đáp án B" class="q-opt-b px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                      <input type="text" placeholder="Đáp án C" class="q-opt-c px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                      <input type="text" placeholder="Đáp án D" class="q-opt-d px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                    </div>
+                    <input type="text" placeholder="Đáp án ĐÚNG CHÍNH XÁC (Trùng với 1 trong các đáp án)" class="q-answer w-full px-3 py-2 rounded-xl border-2 border-emerald-400 text-xs font-bold text-emerald-800">
+                  </div>
+                </div>
+              </div>
+
+              <button onclick="handleSaveNewTest()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all">
+                Lưu & Phát Hành Đề Test Cho Học Viên &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addNewQuestionRow() {
+      const container = document.getElementById('questionsBuilderContainer');
+      const count = container.querySelectorAll('.q-builder-item').length + 1;
+      const div = document.createElement('div');
+      div.className = 'p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 q-builder-item';
+      div.innerHTML = `
+        <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+          <span>Câu #${count}</span>
+          <select class="q-type-select text-xs font-bold px-2 py-1 rounded-lg border border-slate-200">
+            <option value="mcq">Trắc nghiệm A B C D</option>
+            <option value="fill">Điền từ vào chỗ trống</option>
+          </select>
+        </div>
+        <input type="text" placeholder="Nội dung câu hỏi..." class="q-prompt w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" placeholder="Đáp án A" class="q-opt-a px-3 py-2 rounded-xl border border-slate-200 text-xs">
+          <input type="text" placeholder="Đáp án B" class="q-opt-b px-3 py-2 rounded-xl border border-slate-200 text-xs">
+          <input type="text" placeholder="Đáp án C" class="q-opt-c px-3 py-2 rounded-xl border border-slate-200 text-xs">
+          <input type="text" placeholder="Đáp án D" class="q-opt-d px-3 py-2 rounded-xl border border-slate-200 text-xs">
+        </div>
+        <input type="text" placeholder="Đáp án ĐÚNG CHÍNH XÁC" class="q-answer w-full px-3 py-2 rounded-xl border-2 border-emerald-400 text-xs font-bold text-emerald-800">
+      `;
+      container.appendChild(div);
+      document.getElementById('testQCount').textContent = count;
+    }
+
+    function handleSaveNewTest() {
+      const title = document.getElementById('newTestTitle').value.trim();
+      const level = document.getElementById('newTestLevel').value;
+      const duration = parseInt(document.getElementById('newTestDuration').value) || 10;
+
+      if (!title) {
+        alert('Vui lòng nhập tên bài test!');
+        return;
+      }
+
+      const rows = document.querySelectorAll('.q-builder-item');
+      const questions = [];
+
+      rows.forEach((r, idx) => {
+        const prompt = r.querySelector('.q-prompt').value.trim();
+        const ans = r.querySelector('.q-answer').value.trim();
+        const type = r.querySelector('.q-type-select').value;
+        const optA = r.querySelector('.q-opt-a').value.trim();
+        const optB = r.querySelector('.q-opt-b').value.trim();
+        const optC = r.querySelector('.q-opt-c').value.trim();
+        const optD = r.querySelector('.q-opt-d').value.trim();
+
+        if (prompt && ans) {
+          questions.push({
+            id: 'q_' + (idx + 1),
+            type: type,
+            prompt: prompt,
+            options: [optA || ans, optB || 'Đáp án 2', optC || 'Đáp án 3', optD || 'Đáp án 4'],
+            answer: ans,
+            explanation: 'Đáp án chuẩn: ' + ans
+          });
+        }
+      });
+
+      if (questions.length === 0) {
+        alert('Vui lòng nhập ít nhất 1 câu hỏi hợp lệ!');
+        return;
+      }
+
+      db = loadDB();
+      if (!db.tests) db.tests = [];
+      db.tests.unshift({
+        id: 'test_' + Date.now(),
+        title: title,
+        level: level,
+        durationMinutes: duration,
+        targetType: 'LEVEL',
+        targetLevel: level,
+        createdAt: new Date().toISOString().split('T')[0],
+        questions: questions
+      });
+
+      saveDB(db);
+      document.getElementById('modalHost').innerHTML = '';
+      showToast(`Đã lưu bài test "${title}"!`, '🎉');
+      renderApp();
+    }
+
+    function deleteTest(id) {
+      if (confirm('Bạn có chắc muốn xoá đề thi này?')) {
+        db = loadDB();
+        db.tests = db.tests.filter(t => t.id !== id);
+        saveDB(db);
+        showToast('Đã xoá đề thi.', '🗑️');
+        renderApp();
+      }
+    }
+
+    function previewTest(id) {
+      db = loadDB();
+      const t = db.tests.find(x => x.id === id);
+      if (!t) return;
+      alert(`Đề thi: ${t.title}\nCấp độ: ${t.level}\nSố câu: ${t.questions.length}\nThời gian: ${t.durationMinutes} phút`);
+    }
+
+    function viewSubmissionDetail(subId) {
+      db = loadDB();
+      const sub = db.submissions.find(s => s.id === subId);
+      if (!sub) return;
+
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 class="text-lg font-black text-slate-800">${sub.studentName}</h3>
+                <span class="text-xs text-slate-400">Điểm: <b class="text-emerald-600 text-sm">${sub.score}/100</b> (${sub.submittedAt})</span>
+              </div>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3">
+              ${(sub.details || []).map((d, i) => `
+                <div class="p-3.5 rounded-xl border ${d.correct ? 'border-emerald-200 bg-emerald-50/50' : 'border-rose-200 bg-rose-50/50'} text-xs space-y-1">
+                  <div class="font-bold text-slate-800">Câu ${i + 1}: ${d.prompt || ''}</div>
+                  <div>Học viên trả lời: <b class="${d.correct ? 'text-emerald-700' : 'text-rose-700'}">${d.studentAnswer}</b></div>
+                  ${!d.correct ? `<div>Đáp án đúng: <b class="text-emerald-700">${d.correctAnswer}</b></div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+
+            <button onclick="document.getElementById('modalHost').innerHTML=''" class="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-xs">Đóng</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // WORD BANK MODAL
+    function openWordBankModal() {
+      const modal = document.getElementById('modalHost');
+      const list = arenaWords;
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-3xl w-full shadow-2xl border border-white/20 pop-in space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="text-lg font-black text-slate-800">📖 Kho Từ Vựng (${list.length} từ)</h3>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="text-xs font-black text-slate-400 uppercase border-b border-slate-100">
+                    <th class="py-2">Chữ Hán</th>
+                    <th class="py-2">Pinyin</th>
+                    <th class="py-2">Nghĩa Tiếng Việt</th>
+                    <th class="py-2 text-center">Nghe</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${list.map(w => `
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-3 font-bold text-base text-slate-800">${w.hanzi}</td>
+                      <td class="py-3 font-semibold text-rose-600">${w.pinyin}</td>
+                      <td class="py-3 text-slate-600 font-medium">${w.meaning}</td>
+                      <td class="py-3 text-center">
+                        <button onclick="speakChinese('${w.hanzi}')" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200">🔊</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <button onclick="document.getElementById('modalHost').innerHTML=''" class="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-xs">Đóng</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // 12. ROUTER & ROOT APP RENDERER
+    // ==========================================
+    function renderApp() {
+      const view = document.getElementById('appView');
+      if (!view) return;
+
+      if (!currentUser || currentRoute === 'login') {
+        view.innerHTML = renderLoginView();
+      } else if (currentRoute === 'manager') {
+        view.innerHTML = renderManagerView();
+      } else if (currentRoute === 'student') {
+        view.innerHTML = renderStudentView();
+      } else if (currentRoute === 'test_runner') {
+        view.innerHTML = renderTestRunnerView();
+      } else if (currentRoute === 'game_arena') {
+        view.innerHTML = renderVocabArenaView();
+      }
+    }
+
+    // STARTUP
+    checkSession();
   </script>
 </body>
 </html>
