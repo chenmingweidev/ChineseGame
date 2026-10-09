@@ -534,7 +534,7 @@
                 <span class="text-2xl">👤</span>
                 <div>
                   <h3 class="text-lg font-black text-slate-800">Cài Đặt Tài Khoản</h3>
-                  <p class="text-xs text-slate-500">Đổi họ tên và mật khẩu đăng nhập của bạn</p>
+                  <p class="text-xs text-slate-500">Đổi bí danh, họ tên và mật khẩu của bạn</p>
                 </div>
               </div>
               <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
@@ -542,24 +542,28 @@
 
             <form onsubmit="handleSaveProfile(event)" class="space-y-4">
               <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tên Đăng Nhập / Bí Danh (Không thể đổi)</label>
-                <input type="text" readonly value="@${currentUser.username}" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 font-mono text-xs font-bold text-slate-600 outline-none">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bí Danh / Tên Đăng Nhập (@username)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">@</span>
+                  <input type="text" id="inputProfileUsername" required value="${currentUser.username}" placeholder="Nhập bí danh mới..." class="w-full pl-7 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1 italic">💡 Bí danh này sẽ hiển thị trên Bảng Vàng Thành Tích và dùng để đăng nhập.</p>
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Họ và Tên Thật</label>
-                <input type="text" id="inputProfileFullName" required value="${currentUser.fullName}" placeholder="Nhập họ và tên..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
-                <p class="text-[11px] text-slate-400 mt-1 italic">💡 Tên thật chỉ giảng viên thấy được trong sổ điểm. Trên bảng thành tích chỉ hiện bí danh.</p>
+                <input type="text" id="inputProfileFullName" required value="${currentUser.fullName}" placeholder="Nhập họ và tên..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                <p class="text-[11px] text-slate-400 mt-1 italic">💡 Tên thật và mật khẩu chỉ giảng viên quản lý thấy được để hỗ trợ bạn.</p>
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật Khẩu Mới</label>
-                <input type="password" id="inputProfilePassword" required value="${currentUser.password}" placeholder="Nhập mật khẩu mới..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                <input type="password" id="inputProfilePassword" required value="${currentUser.password}" placeholder="Nhập mật khẩu mới..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
               </div>
 
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Xác Nhận Mật Khẩu</label>
-                <input type="password" id="inputProfilePasswordConfirm" required value="${currentUser.password}" placeholder="Nhập lại mật khẩu mới..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                <input type="password" id="inputProfilePasswordConfirm" required value="${currentUser.password}" placeholder="Nhập lại mật khẩu mới..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-800 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
               </div>
 
               <div class="flex items-center gap-3 pt-2">
@@ -578,10 +582,15 @@
 
     function handleSaveProfile(e) {
       e.preventDefault();
+      let newUsername = document.getElementById('inputProfileUsername').value.trim().replace(/^@+/, '');
       const newName = document.getElementById('inputProfileFullName').value.trim();
       const newPass = document.getElementById('inputProfilePassword').value.trim();
       const newPassConfirm = document.getElementById('inputProfilePasswordConfirm').value.trim();
 
+      if (!newUsername) {
+        alert('Vui lòng nhập bí danh!');
+        return;
+      }
       if (!newName) {
         alert('Vui lòng nhập họ và tên!');
         return;
@@ -595,32 +604,50 @@
         return;
       }
 
+      db = loadDB();
+      const existingUser = db.users.find(u => u.username.toLowerCase() === newUsername.toLowerCase() && u.id !== currentUser.id);
+      if (existingUser) {
+        alert(`Bí danh "@${newUsername}" đã có người khác sử dụng. Vui lòng chọn bí danh khác!`);
+        return;
+      }
+
       // Update current user
+      currentUser.username = newUsername;
       currentUser.fullName = newName;
       currentUser.password = newPass;
       sessionStorage.setItem('cn_current_user', JSON.stringify(currentUser));
 
       // Update local db
-      db = loadDB();
       const uIdx = db.users.findIndex(u => u.id === currentUser.id);
       if (uIdx !== -1) {
+        db.users[uIdx].username = newUsername;
         db.users[uIdx].fullName = newName;
         db.users[uIdx].password = newPass;
-        saveDB(db);
       }
+
+      // If name or username changed, also update submission records
+      if (db.submissions) {
+        db.submissions.forEach(sub => {
+          if (sub.studentId === currentUser.id) {
+            sub.studentName = newName;
+          }
+        });
+      }
+      saveDB(db);
 
       // Update cloud Supabase
       if (supabaseClient) {
         supabaseClient.from('chinese_users').update({
+          username: newUsername,
           full_name: newName,
           password: newPass
         }).eq('id', currentUser.id).then(() => {
-          console.log('Profile synced to Supabase Cloud!');
+          console.log('Profile and username synced to Supabase Cloud!');
         });
       }
 
       document.getElementById('modalHost').innerHTML = '';
-      showToast('Đã cập nhật Họ tên và Mật khẩu thành công!', '🎉');
+      showToast('Đã cập nhật Bí danh, Họ tên và Mật khẩu thành công!', '🎉');
       renderApp();
     }
 
@@ -959,8 +986,9 @@
             <table class="w-full text-left text-sm" id="studentsTable">
               <thead>
                 <tr class="text-xs font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  <th class="py-3 px-4">Học Viên</th>
-                  <th class="py-3 px-4">Tài Khoản</th>
+                  <th class="py-3 px-4">Họ và Tên Thật</th>
+                  <th class="py-3 px-4">Bí Danh (@Username)</th>
+                  <th class="py-3 px-4">Mật Khẩu</th>
                   <th class="py-3 px-4 text-center">Cấp Độ</th>
                   <th class="py-3 px-4">File Từ Vựng Đang Học</th>
                   <th class="py-3 px-4 text-center">Điểm EXP</th>
@@ -977,16 +1005,26 @@
                   return `
                     <tr class="hover:bg-slate-50/80 transition-colors student-row" data-level="${s.level}">
                       <td class="py-4 px-4 font-bold text-slate-800 flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black text-sm">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center font-black text-sm shadow-sm">
                           ${s.fullName.charAt(0)}
                         </div>
                         <div>
-                          <div>${s.fullName}</div>
+                          <div class="font-extrabold text-slate-900">${s.fullName}</div>
                           <div class="text-[11px] font-medium text-slate-400">Chuỗi học: 🔥 ${s.streak || 0} ngày</div>
                         </div>
                       </td>
-                      <td class="py-4 px-4 font-mono text-xs text-slate-600">
-                        ${s.username} <span class="text-slate-300">(${s.password})</span>
+                      <td class="py-4 px-4">
+                        <span class="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-xl bg-slate-100 font-mono text-xs font-bold text-slate-700 border border-slate-200">
+                          <span class="text-rose-500 font-bold">@</span>${s.username}
+                        </span>
+                      </td>
+                      <td class="py-4 px-4">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200">
+                          <span class="font-mono text-xs font-black text-amber-900 tracking-wider">${s.password}</span>
+                          <button onclick="navigator.clipboard.writeText('${s.password}'); showToast('Đã sao chép mật khẩu của ${s.fullName}!', '📋')" class="text-xs text-amber-600 hover:text-amber-800 transition-colors" title="Sao chép mật khẩu">
+                            📋
+                          </button>
+                        </div>
                       </td>
                       <td class="py-4 px-4 text-center">
                         <span class="inline-block px-3 py-1 rounded-full text-xs font-black border ${levelColors[s.level] || 'bg-slate-100 text-slate-600'}">
@@ -996,7 +1034,7 @@
                       <td class="py-4 px-4">
                         ${s.currentFile ? `
                           <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            <span>📄</span> <span class="truncate max-w-[160px]">${s.currentFile.fileName}</span>
+                            <span>📄</span> <span class="truncate max-w-[140px]">${s.currentFile.fileName}</span>
                           </div>
                           <div class="text-[11px] text-slate-400">${s.currentFile.wordCount} từ vựng đã nạp</div>
                         ` : `
@@ -1009,6 +1047,9 @@
                       <td class="py-4 px-4 text-right space-x-1 whitespace-nowrap">
                         <button onclick="viewStudentDetail('${s.id}')" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all" title="Xem chi tiết tiến độ">
                           👁️ Chi tiết
+                        </button>
+                        <button onclick="openEditStudentModal('${s.id}')" class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold transition-all" title="Sửa tên, bí danh, mật khẩu">
+                          ✏️ Sửa
                         </button>
                         <button onclick="deleteStudent('${s.id}')" class="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-all" title="Xoá học viên">
                           🗑️
@@ -1113,10 +1154,14 @@
                   <tr><td colspan="7" class="py-8 text-center text-slate-400 font-medium">Chưa có học viên nào nộp bài.</td></tr>
                 ` : submissions.map(sub => {
                   const test = (db.tests || []).find(t => t.id === sub.testId);
+                  const student = (db.users || []).find(u => u.id === sub.studentId);
                   const isGood = sub.score >= 70;
                   return `
                     <tr class="hover:bg-slate-50/80 transition-colors">
-                      <td class="py-4 px-4 font-bold text-slate-800">${sub.studentName}</td>
+                      <td class="py-4 px-4">
+                        <div class="font-bold text-slate-900">${sub.studentName}</div>
+                        <div class="text-[11px] font-mono text-slate-400">@${student ? student.username : 'hocvien'}</div>
+                      </td>
                       <td class="py-4 px-4 font-semibold text-slate-700">${test ? test.title : 'Mini Test'}</td>
                       <td class="py-4 px-4 text-center">
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700">${sub.level}</span>
@@ -2700,16 +2745,19 @@
 
             <form onsubmit="handleCreateStudentSubmit(event)" class="space-y-4">
               <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Họ và Tên</label>
-                <input type="text" id="newStudentName" required placeholder="Ví dụ: Nguyễn Văn A" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Họ và Tên Thật</label>
+                <input type="text" id="newStudentName" required placeholder="Ví dụ: Nguyễn Minh Trí" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Tên Đăng Nhập</label>
-                <input type="text" id="newStudentUsername" required placeholder="Ví dụ: hocvien4" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Bí Danh / Tên Đăng Nhập (@username)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-3 text-xs font-bold text-slate-400">@</span>
+                  <input type="text" id="newStudentUsername" required placeholder="hocvien1" class="w-full pl-7 pr-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-semibold outline-none focus:border-rose-500">
+                </div>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Mật Khẩu</label>
-                <input type="text" id="newStudentPassword" value="123" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-rose-500">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Mật Khẩu Đăng Nhập</label>
+                <input type="text" id="newStudentPassword" value="123" required class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold text-amber-900 bg-amber-50/50 outline-none focus:border-rose-500">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Cấp Độ HSK</label>
@@ -2731,13 +2779,13 @@
     function handleCreateStudentSubmit(e) {
       e.preventDefault();
       const name = document.getElementById('newStudentName').value.trim();
-      const user = document.getElementById('newStudentUsername').value.trim();
+      let user = document.getElementById('newStudentUsername').value.trim().replace(/^@+/, '');
       const pass = document.getElementById('newStudentPassword').value.trim();
       const level = document.getElementById('newStudentLevel').value;
 
       db = loadDB();
       if (db.users.some(u => u.username.toLowerCase() === user.toLowerCase())) {
-        alert('Tên đăng nhập đã tồn tại!');
+        alert(`Bí danh / Tên đăng nhập "@${user}" đã tồn tại! Vui lòng chọn bí danh khác.`);
         return;
       }
 
@@ -2773,7 +2821,7 @@
       }
 
       document.getElementById('modalHost').innerHTML = '';
-      showToast(`Đã thêm học viên ${name}!`, '🎉');
+      showToast(`Đã thêm học viên ${name} (@${user})!`, '🎉');
       renderApp();
     }
 
@@ -2801,13 +2849,33 @@
       const modal = document.getElementById('modalHost');
       modal.innerHTML = `
         <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-white/20 pop-in space-y-5 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 class="text-lg font-black text-slate-800">${s.fullName}</h3>
                 <span class="text-xs font-bold text-rose-600">${s.level} &bull; @${s.username}</span>
               </div>
               <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <!-- CREDENTIALS CARD FOR MANAGER -->
+            <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs space-y-2.5">
+              <div class="font-black text-amber-900 uppercase tracking-wider text-[11px] flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><span>🔐</span> Thông Tin Tài Khoản Học Viên</span>
+                <button onclick="openEditStudentModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-800 font-bold hover:bg-amber-100 transition-all">
+                  ✏️ Sửa Thông Tin
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div>Họ và tên thật: <b class="text-slate-900">${s.fullName}</b></div>
+                <div>Bí danh: <b class="font-mono text-rose-600">@${s.username}</b></div>
+                <div class="flex items-center gap-1.5">
+                  Mật khẩu: 
+                  <span class="font-mono font-black text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-200">${s.password}</span>
+                  <button onclick="navigator.clipboard.writeText('${s.password}'); showToast('Đã sao chép mật khẩu!', '📋')" class="text-slate-500 hover:text-slate-800" title="Sao chép">📋</button>
+                </div>
+                <div>Cấp độ: <b class="text-slate-900">${s.level}</b></div>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 text-center">
@@ -2833,10 +2901,115 @@
               </div>
             </div>
 
-            <button onclick="document.getElementById('modalHost').innerHTML=''" class="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-xs">Đóng</button>
+            <div class="flex items-center gap-3 pt-2">
+              <button onclick="openEditStudentModal('${s.id}')" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-all">
+                ✏️ Chỉnh Sửa Tài Khoản
+              </button>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all">
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       `;
+    }
+
+    function openEditStudentModal(id) {
+      db = loadDB();
+      const s = db.users.find(u => u.id === id);
+      if (!s) return;
+
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-white/20 pop-in space-y-6">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 class="text-lg font-black text-slate-800">Sửa Tài Khoản Học Viên</h3>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <form onsubmit="handleSaveStudentEdit(event, '${s.id}')" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Họ và Tên Thật</label>
+                <input type="text" id="editStudentFullName" required value="${s.fullName}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-rose-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bí Danh / Tên Đăng Nhập (@username)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">@</span>
+                  <input type="text" id="editStudentUsername" required value="${s.username}" class="w-full pl-7 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold outline-none focus:border-rose-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật Khẩu Đăng Nhập</label>
+                <input type="text" id="editStudentPassword" required value="${s.password}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold text-amber-900 bg-amber-50/50 outline-none focus:border-rose-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Phân Cấp HSK</label>
+                <select id="editStudentLevel" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white">
+                  <option value="HSK1" ${s.level === 'HSK1' ? 'selected' : ''}>HSK 1</option>
+                  <option value="HSK2" ${s.level === 'HSK2' ? 'selected' : ''}>HSK 2</option>
+                  <option value="HSK3" ${s.level === 'HSK3' ? 'selected' : ''}>HSK 3</option>
+                </select>
+              </div>
+
+              <div class="flex items-center gap-3 pt-2">
+                <button type="submit" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs shadow-md hover:opacity-95 transition-all">
+                  💾 Lưu Cập Nhật
+                </button>
+                <button type="button" onclick="document.getElementById('modalHost').innerHTML=''" class="px-5 py-3.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition-all">
+                  Huỷ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleSaveStudentEdit(e, studentId) {
+      e.preventDefault();
+      const newName = document.getElementById('editStudentFullName').value.trim();
+      let newUsername = document.getElementById('editStudentUsername').value.trim().replace(/^@+/, '');
+      const newPass = document.getElementById('editStudentPassword').value.trim();
+      const newLevel = document.getElementById('editStudentLevel').value;
+
+      if (!newName || !newUsername || !newPass) {
+        alert('Vui lòng điền đầy đủ thông tin!');
+        return;
+      }
+
+      db = loadDB();
+      const existing = db.users.find(u => u.username.toLowerCase() === newUsername.toLowerCase() && u.id !== studentId);
+      if (existing) {
+        alert(`Bí danh "@${newUsername}" đã tồn tại. Vui lòng chọn bí danh khác!`);
+        return;
+      }
+
+      const sIdx = db.users.findIndex(u => u.id === studentId);
+      if (sIdx !== -1) {
+        db.users[sIdx].fullName = newName;
+        db.users[sIdx].username = newUsername;
+        db.users[sIdx].password = newPass;
+        db.users[sIdx].level = newLevel;
+        saveDB(db);
+
+        if (supabaseClient) {
+          supabaseClient.from('chinese_users').update({
+            full_name: newName,
+            username: newUsername,
+            password: newPass,
+            level: newLevel
+          }).eq('id', studentId).then(() => console.log('Student updated in Supabase!'));
+        }
+
+        document.getElementById('modalHost').innerHTML = '';
+        showToast(`Đã cập nhật thông tin học viên ${newName}!`, '🎉');
+        renderApp();
+      }
     }
 
     // CREATE TEST MODAL
