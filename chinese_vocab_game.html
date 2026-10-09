@@ -296,6 +296,223 @@
     let db = loadDB();
 
     // ==========================================
+    // 1.0 BUILT-IN HSK VOCABULARY BANK & AUTO QUESTION GENERATOR ENGINE
+    // ==========================================
+    const BUILTIN_HSK_VOCAB = {
+      HSK1: [
+        { hanzi: '你好', pinyin: 'nǐ hǎo', meaning: 'Xin chào', exampleCN: '你好，很高兴认识你。', exampleVN: 'Xin chào, rất vui được quen biết bạn.', arrange: ['你好', '很高兴', '认识', '你'] },
+        { hanzi: '谢谢', pinyin: 'xiè xie', meaning: 'Cảm ơn', exampleCN: '谢谢你的热情帮助。', exampleVN: 'Cảm ơn sự giúp đỡ nhiệt tình của bạn.', arrange: ['谢谢', '你的', '热情', '帮助'] },
+        { hanzi: '再见', pinyin: 'zài jiàn', meaning: 'Tạm biệt', exampleCN: '明天见，老师再见！', exampleVN: 'Ngày mai gặp lại, tạm biệt thầy cô!', arrange: ['明天见', '老师', '再见'] },
+        { hanzi: '中国', pinyin: 'zhōng guó', meaning: 'Trung Quốc', exampleCN: '我想去中国旅游学习。', exampleVN: 'Tôi muốn đi Trung Quốc du lịch học tập.', arrange: ['我想去', '中国', '旅游', '学习'] },
+        { hanzi: '老师', pinyin: 'lǎo shī', meaning: 'Giáo viên', exampleCN: '王老师是我的汉语老师。', exampleVN: 'Thầy Vương là giáo viên tiếng Trung của tôi.', arrange: ['王老师', '是', '我的', '汉语老师'] },
+        { hanzi: '学生', pinyin: 'xué sheng', meaning: 'Học sinh, sinh viên', exampleCN: '我们都是大学学生。', exampleVN: 'Chúng tôi đều là sinh viên đại học.', arrange: ['我们', '都是', '大学', '学生'] },
+        { hanzi: '朋友', pinyin: 'péng you', meaning: 'Bạn bè', exampleCN: '他是我的好朋友。', exampleVN: 'Anh ấy là người bạn tốt của tôi.', arrange: ['他', '是', '我的', '好朋友'] },
+        { hanzi: '喜欢', pinyin: 'xǐ huan', meaning: 'Thích', exampleCN: '我喜欢学习汉语。', exampleVN: 'Tôi thích học tiếng Hán.', arrange: ['我', '喜欢', '学习', '汉语'] },
+        { hanzi: '吃', pinyin: 'chī', meaning: 'Ăn', exampleCN: '今天中午你想吃什么？', exampleVN: 'Trưa nay bạn muốn ăn gì?', arrange: ['今天', '中午', '你想', '吃什么'] },
+        { hanzi: '喝水', pinyin: 'hē shuǐ', meaning: 'Uống nước', exampleCN: '请大家多喝水。', exampleVN: 'Mời mọi người uống nhiều nước.', arrange: ['请大家', '多', '喝水'] },
+        { hanzi: '苹果', pinyin: 'píng guǒ', meaning: 'Quả táo', exampleCN: '我喜欢吃红苹果。', exampleVN: 'Tôi thích ăn táo đỏ.', arrange: ['我', '喜欢', '吃', '红苹果'] },
+        { hanzi: '米饭', pinyin: 'mǐ fàn', meaning: 'Cơm trắng', exampleCN: '中国人常吃米饭。', exampleVN: 'Người Trung Quốc thường ăn cơm trắng.', arrange: ['中国人', '常吃', '米饭'] },
+        { hanzi: '家', pinyin: 'jiā', meaning: 'Nhà, gia đình', exampleCN: '我家在北京。', exampleVN: 'Nhà tôi ở Bắc Kinh.', arrange: ['我家', '在', '北京'] },
+        { hanzi: '学校', pinyin: 'xué xiào', meaning: 'Trường học', exampleCN: '我们的学校很大很漂亮。', exampleVN: 'Trường của chúng tôi rất to và đẹp.', arrange: ['我们的', '学校', '很大', '很漂亮'] },
+        { hanzi: '商店', pinyin: 'shāng diàn', meaning: 'Cửa hàng', exampleCN: '他去商店买东西。', exampleVN: 'Anh ấy đi cửa hàng mua đồ.', arrange: ['他', '去商店', '买', '东西'] },
+        { hanzi: '医院', pinyin: 'yī yuàn', meaning: 'Bệnh viện', exampleCN: '我妈妈在医院工作。', exampleVN: 'Mẹ tôi làm việc ở bệnh viện.', arrange: ['我妈妈', '在医院', '工作'] },
+        { hanzi: '今天', pinyin: 'jīn tiān', meaning: 'Hôm nay', exampleCN: '今天天气非常好。', exampleVN: 'Thời tiết hôm nay rất đẹp.', arrange: ['今天', '天气', '非常', '好'] },
+        { hanzi: '明天', pinyin: 'míng tiān', meaning: 'Ngày mai', exampleCN: '明天我们去看电影。', exampleVN: 'Ngày mai chúng tôi đi xem phim.', arrange: ['明天', '我们', '去', '看电影'] },
+        { hanzi: '昨天', pinyin: 'zuó tiān', meaning: 'Hôm qua', exampleCN: '昨天你去哪儿了？', exampleVN: 'Hôm qua bạn đi đâu thế?', arrange: ['昨天', '你', '去哪儿', '了'] },
+        { hanzi: '多少', pinyin: 'duō shao', meaning: 'Bao nhiêu', exampleCN: '这个苹果多少钱？', exampleVN: 'Quả táo này bao nhiêu tiền?', arrange: ['这个', '苹果', '多少', '钱'] },
+        { hanzi: '认识', pinyin: 'rèn shi', meaning: 'Quen biết', exampleCN: '认识你很高兴。', exampleVN: 'Quen biết bạn rất vui.', arrange: ['认识', '你', '很', '高兴'] },
+        { hanzi: '医生', pinyin: 'yī shēng', meaning: 'Bác sĩ', exampleCN: '他长大想当医生。', exampleVN: 'Anh ấy lớn lên muốn làm bác sĩ.', arrange: ['他', '长大', '想当', '医生'] },
+        { hanzi: '看书', pinyin: 'kàn shū', meaning: 'Đọc sách', exampleCN: '周末我常在家看书。', exampleVN: 'Cuối tuần tôi hay ở nhà đọc sách.', arrange: ['周末', '我常', '在家', '看书'] },
+        { hanzi: '爸爸', pinyin: 'bà ba', meaning: 'Bố, cha', exampleCN: '我爸爸工作很忙。', exampleVN: 'Bố tôi công việc rất bận.', arrange: ['我爸爸', '工作', '很', '忙'] },
+        { hanzi: '妈妈', pinyin: 'mā ma', meaning: 'Mẹ', exampleCN: '妈妈做的饭菜很好吃。', exampleVN: 'Cơm mẹ nấu rất ngon.', arrange: ['妈妈', '做的', '饭菜', '很好吃'] }
+      ],
+      HSK2: [
+        { hanzi: '跑步', pinyin: 'pǎo bù', meaning: 'Chạy bộ', exampleCN: '我每天早晨去公园跑步。', exampleVN: 'Mỗi sáng tôi đều ra công viên chạy bộ.', arrange: ['我每天', '早晨', '去公园', '跑步'] },
+        { hanzi: '游泳', pinyin: 'yóu yǒng', meaning: 'Bơi lội', exampleCN: '夏天去游泳很舒服。', exampleVN: 'Mùa hè đi bơi rất dễ chịu.', arrange: ['夏天', '去游泳', '很', '舒服'] },
+        { hanzi: '唱歌', pinyin: 'chàng gē', meaning: 'Ca hát', exampleCN: '妹妹非常喜欢唱歌。', exampleVN: 'Em gái rất thích ca hát.', arrange: ['妹妹', '非常', '喜欢', '唱歌'] },
+        { hanzi: '跳舞', pinyin: 'tiào wǔ', meaning: 'Khiêu vũ, múa', exampleCN: '她跳舞跳得非常好。', exampleVN: 'Cô ấy nhảy múa rất đẹp.', arrange: ['她', '跳舞', '跳得', '非常好'] },
+        { hanzi: '旅游', pinyin: 'lǚ yóu', meaning: 'Du lịch', exampleCN: '去年我去北京旅游了。', exampleVN: 'Năm ngoái tôi đã đi du lịch Bắc Kinh.', arrange: ['去年', '我去', '北京', '旅游了'] },
+        { hanzi: '便宜', pinyin: 'pián yi', meaning: 'Rẻ', exampleCN: '这件衣服又好看又便宜。', exampleVN: 'Chiếc áo này vừa đẹp vừa rẻ.', arrange: ['这件', '衣服', '又好看', '又便宜'] },
+        { hanzi: '贵', pinyin: 'guì', meaning: 'Đắt đỏ', exampleCN: '虽然有点贵但是很好用。', exampleVN: 'Tuy hơi đắt nhưng dùng rất tốt.', arrange: ['虽然', '有点贵', '但是', '很好用'] },
+        { hanzi: '机场', pinyin: 'jī chǎng', meaning: 'Sân bay', exampleCN: '我们坐出租车去机场。', exampleVN: 'Chúng tôi đi taxi ra sân bay.', arrange: ['我们', '坐出租车', '去', '机场'] },
+        { hanzi: '教室', pinyin: 'jiào shì', meaning: 'Phòng học', exampleCN: '同学们都在教室里学习。', exampleVN: 'Các bạn học đều đang học trong phòng.', arrange: ['同学们', '都在', '教室里', '学习'] },
+        { hanzi: '时间', pinyin: 'shí jiān', meaning: 'Thời gian', exampleCN: '你有时间和我们聊天吗？', exampleVN: 'Bạn có thời gian nói chuyện với chúng tôi không?', arrange: ['你', '有时间', '和我们', '聊天吗'] },
+        { hanzi: '帮助', pinyin: 'bāng zhù', meaning: 'Giúp đỡ', exampleCN: '非常感谢你的热情帮助。', exampleVN: 'Vô cùng cảm ơn sự giúp đỡ nhiệt tình của bạn.', arrange: ['非常', '感谢', '你的', '热情帮助'] },
+        { hanzi: '已经', pinyin: 'yǐ jīng', meaning: 'Đã, rồi', exampleCN: '我已经做完今天的作业了。', exampleVN: 'Tôi đã làm xong bài tập hôm nay rồi.', arrange: ['我', '已经', '做完', '今天的作业'] },
+        { hanzi: '正在', pinyin: 'zhèng zài', meaning: 'Đang', exampleCN: '他正在房间里听音乐。', exampleVN: 'Anh ấy đang nghe nhạc trong phòng.', arrange: ['他', '正在', '房间里', '听音乐'] },
+        { hanzi: '准备', pinyin: 'zhǔn bèi', meaning: 'Chuẩn bị', exampleCN: '你准备好去考试了吗？', exampleVN: 'Bạn đã chuẩn bị sẵn sàng đi thi chưa?', arrange: ['你', '准备好', '去', '考试了吗'] },
+        { hanzi: '运动', pinyin: 'yùn dòng', meaning: 'Vận động, thể thao', exampleCN: '多做运动对身体很有好处。', exampleVN: 'Tập nhiều thể thao rất có lợi cho sức khỏe.', arrange: ['多做', '运动', '对身体', '很有好处'] },
+        { hanzi: '身体', pinyin: 'shēn tǐ', meaning: 'Sức khỏe, thân thể', exampleCN: '祝你身体健康天天快乐。', exampleVN: 'Chúc bạn dồi dào sức khỏe mỗi ngày đều vui.', arrange: ['祝你', '身体健康', '天天', '快乐'] },
+        { hanzi: '欢迎', pinyin: 'huān yíng', meaning: 'Hoan nghênh, chào đón', exampleCN: '热烈欢迎大家来我家做客。', exampleVN: 'Nhiệt liệt chào đón mọi người đến nhà tôi chơi.', arrange: ['热烈', '欢迎', '大家来我家', '做客'] },
+        { hanzi: '介绍', pinyin: 'jiè shào', meaning: 'Giới thiệu', exampleCN: '让我给你介绍一下新朋友。', exampleVN: 'Để tôi giới thiệu bạn mới cho bạn nhé.', arrange: ['让我', '给你介绍', '一下', '新朋友'] },
+        { hanzi: '快乐', pinyin: 'kuài lè', meaning: 'Vui vẻ', exampleCN: '祝你新年快乐万事如意。', exampleVN: 'Chúc bạn năm mới vui vẻ vạn sự như ý.', arrange: ['祝你', '新年快乐', '万事', '如意'] },
+        { hanzi: '事情', pinyin: 'shì qing', meaning: 'Sự việc, việc', exampleCN: '今天有一件重要的急事。', exampleVN: 'Hôm nay có một việc quan trọng khẩn cấp.', arrange: ['今天', '有一件', '重要的', '急事'] },
+        { hanzi: '晴天', pinyin: 'qíng tiān', meaning: 'Ngày nắng', exampleCN: '今天是个适合出游的晴天。', exampleVN: 'Hôm nay là một ngày nắng thích hợp đi chơi.', arrange: ['今天', '是个', '适合出游的', '晴天'] },
+        { hanzi: '阴天', pinyin: 'yīn tiān', meaning: 'Trời âm u', exampleCN: '今天阴天可能会下大雨。', exampleVN: 'Hôm nay trời âm u có thể sẽ mưa to.', arrange: ['今天', '阴天', '可能会', '下大雨'] },
+        { hanzi: '旁边', pinyin: 'páng biān', meaning: 'Bên cạnh', exampleCN: '银行就在学校的旁边。', exampleVN: 'Ngân hàng ở ngay cạnh trường học.', arrange: ['银行', '就在', '学校的', '旁边'] },
+        { hanzi: '方便', pinyin: 'fāng biàn', meaning: 'Tiện lợi', exampleCN: '住在大城市里交通很方便。', exampleVN: 'Sống ở thành phố lớn giao thông rất tiện lợi.', arrange: ['住在', '大城市里', '交通', '很方便'] },
+        { hanzi: '铅笔', pinyin: 'qiān bǐ', meaning: 'Bút chì', exampleCN: '请借我一支铅笔写字。', exampleVN: 'Xin cho tôi mượn một cây bút chì viết chữ.', arrange: ['请借我', '一支', '铅笔', '写字'] }
+      ],
+      HSK3: [
+        { hanzi: '决定', pinyin: 'jué dìng', meaning: 'Quyết định', exampleCN: '我决定明年去北京留学。', exampleVN: 'Tôi quyết định sang năm sẽ đi Bắc Kinh du học.', arrange: ['我决定', '明年', '去北京', '留学'] },
+        { hanzi: '努力', pinyin: 'nǔ lì', meaning: 'Nỗ lực, chăm chỉ', exampleCN: '只要努力就一定能成功。', exampleVN: 'Chỉ cần nỗ lực thì nhất định sẽ thành công.', arrange: ['只要', '努力', '就一定', '能成功'] },
+        { hanzi: '习惯', pinyin: 'xí guàn', meaning: 'Thói quen, tập quán', exampleCN: '我已经习惯早睡早起了。', exampleVN: 'Tôi đã quen với việc ngủ sớm dậy sớm.', arrange: ['我', '已经', '习惯', '早睡早起'] },
+        { hanzi: '解决', pinyin: 'jiě jué', meaning: 'Giải quyết', exampleCN: '我们终于解决了这个大问题。', exampleVN: 'Chúng tôi cuối cùng đã giải quyết được vấn đề lớn này.', arrange: ['我们', '终于', '解决了', '这个大问题'] },
+        { hanzi: '遇到', pinyin: 'yù dào', meaning: 'Gặp phải', exampleCN: '遇到困难千万不要轻易放弃。', exampleVN: 'Gặp khó khăn tuyệt đối chớ vội từ bỏ.', arrange: ['遇到困难', '千万不要', '轻易', '放弃'] },
+        { hanzi: '参加', pinyin: 'cān jiā', meaning: 'Tham gia', exampleCN: '下个月我要参加汉语考试。', exampleVN: 'Tháng sau tôi sẽ tham gia kỳ thi tiếng Hán.', arrange: ['下个月', '我要', '参加', '汉语考试'] },
+        { hanzi: '机会', pinyin: 'jī huì', meaning: 'Cơ hội', exampleCN: '这是一次很难得的好机会。', exampleVN: 'Đây là một cơ hội tốt rất hiếm có.', arrange: ['这是', '一次', '难得的', '好机会'] },
+        { hanzi: '环境', pinyin: 'huán jìng', meaning: 'Môi trường', exampleCN: '我们要共同爱护生活环境。', exampleVN: 'Chúng ta cần cùng nhau yêu quý môi trường sống.', arrange: ['我们要', '共同', '爱护', '生活环境'] },
+        { hanzi: '照顾', pinyin: 'zhào gù', meaning: 'Chăm sóc', exampleCN: '在国外你要好好照顾自己。', exampleVN: 'Ở nước ngoài bạn phải chăm sóc bản thân cho tốt.', arrange: ['在国外', '你要', '好好', '照顾自己'] },
+        { hanzi: '简单', pinyin: 'jiǎn dān', meaning: 'Đơn giản', exampleCN: '这次考试的题目比较简单。', exampleVN: 'Đề thi lần này tương đối đơn giản.', arrange: ['这次', '考试的', '题目', '比较简单'] },
+        { hanzi: '复杂', pinyin: 'fù zá', meaning: 'Phức tạp', exampleCN: '这件事情的情况十分复杂。', exampleVN: 'Tình hình của sự việc này vô cùng phức tạp.', arrange: ['这件事情', '的情况', '十分', '复杂'] },
+        { hanzi: '热情', pinyin: 'rè qíng', meaning: 'Nhiệt tình', exampleCN: '这里的人们都非常热情好客。', exampleVN: 'Người dân ở đây đều rất nhiệt tình hiếu khách.', arrange: ['这里的', '人们', '都非常', '热情好客'] },
+        { hanzi: '聪明', pinyin: 'cōng ming', meaning: 'Thông minh', exampleCN: '那个小男孩特别聪明机灵。', exampleVN: 'Cậu bé đó đặc biệt thông minh nhanh nhẹn.', arrange: ['那个', '小男孩', '特别', '聪明机灵'] },
+        { hanzi: '认真', pinyin: 'rèn zhēn', meaning: 'Nghiêm túc, chăm chỉ', exampleCN: '他做事情总是非常认真负责。', exampleVN: 'Anh ấy làm việc luôn rất nghiêm túc trách nhiệm.', arrange: ['他做事情', '总是', '非常', '认真负责'] },
+        { hanzi: '检查', pinyin: 'jiǎn chá', meaning: 'Kiểm tra', exampleCN: '交卷前请仔细检查两遍。', exampleVN: 'Trước khi nộp bài hãy kiểm tra kỹ hai lần.', arrange: ['交卷前', '请仔细', '检查', '两遍'] },
+        { hanzi: '清楚', pinyin: 'qīng chu', meaning: 'Rõ ràng', exampleCN: '老师讲得十分清楚明白。', exampleVN: 'Thầy cô giảng vô cùng rõ ràng dễ hiểu.', arrange: ['老师', '讲得', '十分', '清楚明白'] },
+        { hanzi: '变化', pinyin: 'biàn huà', meaning: 'Thay đổi, biến hóa', exampleCN: '这几年城市发生了很大变化。', exampleVN: 'Mấy năm nay thành phố đã có nhiều thay đổi lớn.', arrange: ['这几年', '城市发生了', '很大的', '变化'] },
+        { hanzi: '影响', pinyin: 'yǐng xiǎng', meaning: 'Ảnh hưởng', exampleCN: '玩游戏会严重影响学习成绩。', exampleVN: 'Chơi game sẽ ảnh hưởng nghiêm trọng đến điểm số học tập.', arrange: ['玩游戏', '会严重', '影响', '学习成绩'] },
+        { hanzi: '练习', pinyin: 'liàn xí', meaning: 'Luyện tập', exampleCN: '多做练习能有效提高汉语水平。', exampleVN: 'Luyện tập nhiều có thể nâng cao trình độ tiếng Hán hiệu quả.', arrange: ['多做练习', '能有效', '提高', '汉语水平'] },
+        { hanzi: '提高', pinyin: 'tí gāo', meaning: 'Nâng cao, tiến bộ', exampleCN: '我的听力能力有了明显提高。', exampleVN: 'Khả năng nghe của tôi đã có sự tiến bộ rõ rệt.', arrange: ['我的', '听力能力', '有了', '明显提高'] }
+      ]
+    };
+
+    function getAllWordsForLevel(level) {
+      let list = [];
+      if (BUILTIN_HSK_VOCAB[level]) {
+        list = list.concat(BUILTIN_HSK_VOCAB[level]);
+      }
+      try {
+        const curDB = loadDB();
+        (curDB.users || []).forEach(u => {
+          if (u.currentFile && Array.isArray(u.currentFile.words)) {
+            if (u.level === level || level === 'ALL') {
+              list = list.concat(u.currentFile.words);
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error fetching student vocab:', e);
+      }
+
+      if (list.length < 5) {
+        Object.values(BUILTIN_HSK_VOCAB).forEach(arr => {
+          list = list.concat(arr);
+        });
+      }
+
+      const seen = new Set();
+      const unique = [];
+      for (const w of list) {
+        if (w && w.hanzi && !seen.has(w.hanzi)) {
+          seen.add(w.hanzi);
+          unique.push(w);
+        }
+      }
+      return unique;
+    }
+
+    function generateQuestionsFromWords(wordPool, count = 10, allowedTypes = ['mcq', 'fill', 'true_false', 'arrange']) {
+      if (!wordPool || wordPool.length === 0) return [];
+      if (!allowedTypes || allowedTypes.length === 0) allowedTypes = ['mcq', 'fill', 'true_false', 'arrange'];
+      
+      const pool = [...wordPool].sort(() => 0.5 - Math.random());
+      const questions = [];
+
+      for (let i = 0; i < count; i++) {
+        const target = pool[i % pool.length];
+        const type = allowedTypes[i % allowedTypes.length];
+        const otherWords = pool.filter(w => w.hanzi !== target.hanzi);
+
+        if (type === 'mcq') {
+          const isHanziToVN = Math.random() > 0.4;
+          if (isHanziToVN) {
+            const distractors = otherWords.sort(() => 0.5 - Math.random()).slice(0, 3).map(w => w.meaning || 'Đáp án');
+            while (distractors.length < 3) distractors.push('Lựa chọn ' + (distractors.length + 1));
+            const opts = [target.meaning, ...distractors].sort(() => 0.5 - Math.random());
+            questions.push({
+              id: 'q_' + (i + 1),
+              type: 'mcq',
+              prompt: `Hán tự "${target.hanzi}" (${target.pinyin || ''}) có nghĩa là gì trong tiếng Việt?`,
+              pinyin: target.pinyin,
+              options: opts,
+              answer: target.meaning,
+              explanation: `"${target.hanzi}" (${target.pinyin || ''}) có nghĩa là "${target.meaning}". ${target.exampleCN ? 'Ví dụ: ' + target.exampleCN + ' (' + target.exampleVN + ')' : ''}`
+            });
+          } else {
+            const distractors = otherWords.sort(() => 0.5 - Math.random()).slice(0, 3).map(w => w.hanzi);
+            while (distractors.length < 3) distractors.push('词汇' + (distractors.length + 1));
+            const opts = [target.hanzi, ...distractors].sort(() => 0.5 - Math.random());
+            questions.push({
+              id: 'q_' + (i + 1),
+              type: 'mcq',
+              prompt: `Từ nào trong tiếng Trung có nghĩa là "${target.meaning}"?`,
+              options: opts,
+              answer: target.hanzi,
+              explanation: `"${target.hanzi}" (${target.pinyin || ''}) có nghĩa là "${target.meaning}".`
+            });
+          }
+        } else if (type === 'fill') {
+          let promptText = '';
+          if (target.exampleCN && target.exampleCN.includes(target.hanzi)) {
+            promptText = `Điền từ thích hợp vào câu: "${target.exampleCN.replace(target.hanzi, '【 _____ 】')}" (${target.exampleVN || target.meaning})`;
+          } else {
+            promptText = `Điền từ Hán tự có phiên âm "${target.pinyin || ''}" mang nghĩa "${target.meaning}": 【 _____ 】`;
+          }
+          questions.push({
+            id: 'q_' + (i + 1),
+            type: 'fill',
+            prompt: promptText,
+            hint: `${target.pinyin || ''} (${target.meaning})`,
+            answer: target.hanzi,
+            explanation: `Từ cần điền là "${target.hanzi}" (${target.pinyin || ''}): "${target.meaning}".`
+          });
+        } else if (type === 'true_false') {
+          const isTrue = Math.random() > 0.5;
+          if (isTrue || otherWords.length === 0) {
+            questions.push({
+              id: 'q_' + (i + 1),
+              type: 'true_false',
+              prompt: `Phán đoán Đúng hay Sai: Hán tự "${target.hanzi}" (${target.pinyin || ''}) có nghĩa là "${target.meaning}".`,
+              answer: '对 (Đúng)',
+              explanation: `Khẳng định này chính xác! "${target.hanzi}" (${target.pinyin || ''}) nghĩa là "${target.meaning}".`
+            });
+          } else {
+            const falseWord = otherWords[Math.floor(Math.random() * otherWords.length)];
+            questions.push({
+              id: 'q_' + (i + 1),
+              type: 'true_false',
+              prompt: `Phán đoán Đúng hay Sai: Hán tự "${target.hanzi}" (${target.pinyin || ''}) có nghĩa là "${falseWord.meaning}".`,
+              answer: '错 (Sai)',
+              explanation: `Khẳng định này là Sai! "${target.hanzi}" (${target.pinyin || ''}) thực tế có nghĩa là "${target.meaning}", còn "${falseWord.meaning}" là nghĩa của "${falseWord.hanzi}".`
+            });
+          }
+        } else if (type === 'arrange') {
+          let parts = target.arrange && target.arrange.length > 1 ? [...target.arrange] : null;
+          if (!parts && target.exampleCN) {
+            const clean = target.exampleCN.replace(/[，。？！、\s]/g, '');
+            if (clean.length >= 4) {
+              parts = [clean.slice(0, 2), clean.slice(2, 4), clean.slice(4)].filter(Boolean);
+            }
+          }
+          if (!parts || parts.length < 2) {
+            parts = [target.hanzi, '很', '好'];
+          }
+          const shuffledParts = [...parts].sort(() => 0.5 - Math.random());
+          questions.push({
+            id: 'q_' + (i + 1),
+            type: 'arrange',
+            prompt: `Sắp xếp các cụm từ sau thành câu tiếng Trung hoàn chỉnh: "${target.exampleVN || target.meaning}"`,
+            parts: shuffledParts,
+            answer: parts.join(' '),
+            explanation: `Câu hoàn chỉnh: "${target.exampleCN || parts.join('')}" (${target.exampleVN || target.meaning}).`
+          });
+        }
+      }
+      return questions;
+    }
+
+    // ==========================================
     // 1.1 SUPABASE CLOUD & REALTIME DATABASE ENGINE
     // ==========================================
     const SUPABASE_PROJECT_URL = 'https://rokompsjfgpvukhwylwp.supabase.co';
@@ -926,8 +1143,11 @@
               <button onclick="openProfileModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-sm" title="Đổi họ tên và mật khẩu của bạn">
                 <span>👤</span> Đổi Tên & Mật Khẩu
               </button>
-              <button onclick="openCreateTestModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs sm:text-sm hover:opacity-95 shadow-md flex items-center gap-2 transition-all">
-                <span>➕</span> Soạn Bài Test Mới
+              <button onclick="openAutoCreateTestModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold text-xs sm:text-sm hover:opacity-95 shadow-md flex items-center gap-1.5 transition-all transform active:scale-95" title="Tự động bốc từ vựng và sinh đề thi HSK ngay lập tức">
+                <span>⚡</span> Tự Động Tạo Đề
+              </button>
+              <button onclick="openCreateTestModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-white font-bold text-xs sm:text-sm hover:bg-slate-700 shadow-md flex items-center gap-2 transition-all">
+                <span>➕</span> Soạn Đề Thủ Công
               </button>
               <button onclick="openAddStudentModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-slate-800 shadow-md flex items-center gap-2 transition-all">
                 <span>👤</span> Thêm Học Viên
@@ -1081,9 +1301,14 @@
               <h2 class="text-lg font-black text-slate-800">Ngân Hàng Bài Mini Test Đã Tạo</h2>
               <p class="text-xs text-slate-500">Tạo đề A B C D, Điền từ, Sắp xếp câu để kiểm tra và giao cho từng cấp độ HSK</p>
             </div>
-            <button onclick="openCreateTestModal()" class="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 flex items-center gap-1.5 shadow-sm transition-all">
-              <span>➕</span> Soạn Đề Mới
-            </button>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="openAutoCreateTestModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-500/20 transition-all transform active:scale-95">
+                <span>⚡</span> Tự Động Tạo Đề Nhanh
+              </button>
+              <button onclick="openCreateTestModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all">
+                <span>➕</span> Soạn Đề Thủ Công
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1299,9 +1524,23 @@
     function renderStudentTestsTab(tests, mySubmissions) {
       return `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- AUTO PRACTICE TEST BANNER -->
+          <div class="col-span-1 md:col-span-2 glass-card rounded-3xl p-6 shadow-xl border border-white/20 bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-teal-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white shadow-sm">⚡ Tự Động Làm Đề Thử</span>
+                <h3 class="text-base font-black text-slate-800">Luyện Thi Tự Động Chuẩn ${currentUser.level}</h3>
+              </div>
+              <p class="text-xs text-slate-500">Hệ thống tự động sinh 10 câu trắc nghiệm & điền từ ngẫu nhiên để bạn tự luyện tập bấm giờ bất cứ lúc nào!</p>
+            </div>
+            <button onclick="studentGeneratePracticeTest()" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-black text-xs shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-95 shrink-0">
+              <span>🎲</span> Sinh Đề Thi Thử Ngay &rarr;
+            </button>
+          </div>
+
           ${tests.length === 0 ? `
             <div class="col-span-2 glass-card rounded-3xl p-10 text-center text-slate-400 font-medium">
-              Hiện tại giáo viên chưa giao bài test nào cho cấp độ ${currentUser.level}. Hãy quay lại sau nhé!
+              Hiện tại giáo viên chưa giao bài test nào cho cấp độ ${currentUser.level}. Hãy bấm nút "Sinh Đề Thi Thử Ngay" ở trên để tự luyện tập nhé!
             </div>
           ` : tests.map(t => {
             const submission = mySubmissions.find(s => s.testId === t.id);
@@ -1310,9 +1549,12 @@
               <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/20 space-y-4 card-hover flex flex-col justify-between">
                 <div>
                   <div class="flex items-center justify-between gap-2 mb-3">
-                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
-                      ${t.level}
-                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
+                        ${t.level}
+                      </span>
+                      ${t.isPractice ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">🎲 Đề tự luyện</span>` : ''}
+                    </div>
                     <span class="text-xs font-semibold text-slate-400">⏱️ ${t.durationMinutes} phút</span>
                   </div>
                   <h3 class="text-lg font-black text-slate-800 leading-snug">${t.title}</h3>
@@ -1460,7 +1702,7 @@
     // ==========================================
     function startTest(testId) {
       db = loadDB();
-      const test = (db.tests || []).find(t => t.id === testId);
+      const test = (typeof testId === 'object' && testId !== null) ? testId : (db.tests || []).find(t => t.id === testId);
       if (!test) return;
 
       activeTestInstance = {
@@ -1509,12 +1751,15 @@
               <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700">${t.level}</span>
               <h2 class="text-base font-black text-slate-800 mt-1">${t.title}</h2>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+              <button onclick="autoSolveCurrentTest()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition-all transform active:scale-95" title="Tự động điền 100% đáp án đúng cho cả đề thi">
+                <span>🤖</span> Tự Động Làm Bài
+              </button>
               <div class="px-4 py-2 rounded-2xl bg-slate-900 text-amber-400 font-mono font-black text-base shadow-sm" id="testTimerDisplay">
                 --:--
               </div>
-              <button onclick="confirmExitTest()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm">
-                <span>🚪</span> Thoát bài thi
+              <button onclick="confirmExitTest()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm">
+                <span>🚪</span> Thoát
               </button>
             </div>
           </div>
@@ -1547,9 +1792,13 @@
             </div>
 
             <!-- NAVIGATION BUTTONS -->
-            <div class="pt-6 border-t border-slate-100 flex items-center justify-between">
+            <div class="pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
               <button onclick="navigateTest(-1)" ${activeTestInstance.currentIndex === 0 ? 'disabled class="opacity-40 cursor-not-allowed"' : ''} class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 transition-all">
                 &larr; Câu trước
+              </button>
+
+              <button onclick="autoSolveSingleQuestionUI()" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 flex items-center gap-1.5 transition-all shadow-sm" title="Tự động điền đáp án chuẩn cho riêng câu này">
+                <span>⚡</span> Tự Làm Câu Này
               </button>
 
               ${activeTestInstance.currentIndex === totalQ - 1 ? `
@@ -3093,9 +3342,14 @@
                     <label class="text-xs font-bold text-slate-600 uppercase">Danh Sách Câu Hỏi (<span id="testQCount">1</span>)</label>
                     <p class="text-[11px] text-slate-400">Hỗ trợ trắc nghiệm A B C D, Điền từ, Đúng/Sai (对/错), Sắp xếp câu</p>
                   </div>
-                  <button type="button" onclick="addNewQuestionRow()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition-all flex items-center gap-1">
-                    <span>➕</span> Thêm Câu Hỏi
-                  </button>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" onclick="autoGenerateQuestionsIntoForm()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-xs transition-all flex items-center gap-1 shadow-sm" title="Tự động bốc từ vựng và điền 5 câu hỏi mẫu vào form">
+                      <span>✨</span> Tự Động Sinh 5 Câu
+                    </button>
+                    <button type="button" onclick="addNewQuestionRow()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition-all flex items-center gap-1">
+                      <span>➕</span> Thêm Câu Hỏi
+                    </button>
+                  </div>
                 </div>
 
                 <div id="questionsBuilderContainer" class="space-y-3">
@@ -3472,6 +3726,472 @@
           </div>
         </div>
       `;
+    }
+
+    // ==========================================
+    // 8.1 AUTO TEST GENERATOR MODALS & CONTROLS
+    // ==========================================
+    function openAutoCreateTestModal() {
+      db = loadDB();
+      const modal = document.getElementById('modalHost');
+      if (!modal) return;
+      const todayStr = new Date().toLocaleDateString('vi-VN');
+
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+                  ⚡
+                </div>
+                <div>
+                  <h3 class="text-lg font-black text-slate-800">Tự Động Tạo Đề Thi HSK Nhanh</h3>
+                  <p class="text-xs text-slate-500">Tự động trích xuất từ vựng và sinh 4 dạng câu hỏi chuẩn HSK</p>
+                </div>
+              </div>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+              <!-- TITLE -->
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tên Bài Test</label>
+                <input type="text" id="autoTestTitle" value="Mini Test HSK 1 Tự Động - ${todayStr}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-rose-500">
+              </div>
+
+              <!-- LEVEL & COUNT & DURATION -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Cấp Độ HSK</label>
+                  <select id="autoTestLevel" onchange="handleAutoTestLevelChange(this.value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white outline-none focus:border-rose-500">
+                    <option value="HSK1" selected>HSK 1</option>
+                    <option value="HSK2">HSK 2</option>
+                    <option value="HSK3">HSK 3</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Số Lượng Câu</label>
+                  <select id="autoTestCount" onchange="handleAutoTestCountChange(this.value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white outline-none focus:border-rose-500">
+                    <option value="5">5 câu</option>
+                    <option value="10" selected>10 câu</option>
+                    <option value="15">15 câu</option>
+                    <option value="20">20 câu</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Thời Gian (Phút)</label>
+                  <input type="number" id="autoTestDuration" value="15" min="1" max="60" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-rose-500">
+                </div>
+              </div>
+
+              <!-- QUESTION TYPES FILTER -->
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <label class="block text-xs font-bold text-slate-700 uppercase">Các Dạng Câu Hỏi Muốn Sinh Tự Động:</label>
+                <div class="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-700">
+                  <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-rose-300">
+                    <input type="checkbox" id="autoTypeMCQ" checked class="text-rose-600 rounded">
+                    <span>Trắc nghiệm ABCD</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-rose-300">
+                    <input type="checkbox" id="autoTypeFill" checked class="text-rose-600 rounded">
+                    <span>Điền từ chỗ trống</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-rose-300">
+                    <input type="checkbox" id="autoTypeTF" checked class="text-rose-600 rounded">
+                    <span>Đúng / Sai (对/错)</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200 cursor-pointer hover:border-rose-300">
+                    <input type="checkbox" id="autoTypeArrange" checked class="text-rose-600 rounded">
+                    <span>Sắp xếp câu</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- ASSIGNMENT TARGET -->
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <label class="block text-xs font-bold text-slate-700 uppercase">Đối Tượng Giao Bài Kiểm Tra:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-rose-300">
+                    <input type="radio" name="autoTargetType" value="ALL" checked onchange="toggleAutoTargetMode('ALL')" class="text-rose-600">
+                    <span class="text-xs font-bold text-slate-800">Tất cả học viên</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-rose-300">
+                    <input type="radio" name="autoTargetType" value="SPECIFIC" onchange="toggleAutoTargetMode('SPECIFIC')" class="text-rose-600">
+                    <span class="text-xs font-bold text-slate-800">Chỉ định cụ thể</span>
+                  </label>
+                </div>
+
+                <div id="autoAssignSpecificContainer" class="hidden pt-2 border-t border-slate-200 space-y-2">
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <span>Chọn học viên nhận bài:</span>
+                    <div class="space-x-2">
+                      <button type="button" onclick="toggleSelectAllAutoStudents(true)" class="text-rose-600 hover:underline">Tất cả</button>
+                      <span>•</span>
+                      <button type="button" onclick="toggleSelectAllAutoStudents(false)" class="text-slate-400 hover:underline">Bỏ chọn</button>
+                    </div>
+                  </div>
+                  <div id="autoAssignStudentChecklist" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    <!-- Dynamically loaded -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- SUBMIT ACTIONS -->
+              <div class="pt-2 space-y-2">
+                <button onclick="handleFastAutoCreateTest()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-black text-sm shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-95">
+                  <span>🚀</span> Tự Động Sinh & Phát Hành Đề Ngay Lập Tức
+                </button>
+                <button onclick="handleAutoCreateAndReviewInEditor()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
+                  <span>✏️</span> Sinh Câu Hỏi & Mở Trình Soạn Để Duyệt/Sửa
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      renderAutoAssignStudentChecklist();
+    }
+
+    function handleAutoTestLevelChange(level) {
+      const titleInput = document.getElementById('autoTestTitle');
+      if (titleInput) {
+        const todayStr = new Date().toLocaleDateString('vi-VN');
+        titleInput.value = `Mini Test ${level} Tự Động - ${todayStr}`;
+      }
+      renderAutoAssignStudentChecklist();
+    }
+
+    function handleAutoTestCountChange(countVal) {
+      const count = parseInt(countVal) || 10;
+      const durationInput = document.getElementById('autoTestDuration');
+      if (durationInput) {
+        if (count <= 5) durationInput.value = 10;
+        else if (count <= 10) durationInput.value = 15;
+        else if (count <= 15) durationInput.value = 20;
+        else durationInput.value = 30;
+      }
+    }
+
+    function toggleAutoTargetMode(mode) {
+      const container = document.getElementById('autoAssignSpecificContainer');
+      if (!container) return;
+      if (mode === 'SPECIFIC') {
+        container.classList.remove('hidden');
+        renderAutoAssignStudentChecklist();
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function renderAutoAssignStudentChecklist() {
+      const listEl = document.getElementById('autoAssignStudentChecklist');
+      if (!listEl) return;
+      const levelEl = document.getElementById('autoTestLevel');
+      const selectedLevel = levelEl ? levelEl.value : 'HSK1';
+
+      db = loadDB();
+      const students = (db.users || []).filter(u => u.role === 'student' && (u.level === selectedLevel || selectedLevel === 'ALL'));
+
+      if (students.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-xs text-slate-400 italic py-2 text-center bg-white rounded-xl border border-slate-100">
+            Chưa có học viên nào ở cấp độ ${selectedLevel}.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = students.map(s => `
+        <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 hover:border-rose-400 cursor-pointer transition-all">
+          <div class="flex items-center gap-2.5">
+            <input type="checkbox" value="${s.id}" class="auto-assign-student-cb rounded text-rose-600 focus:ring-rose-500 w-4 h-4" checked>
+            <div>
+              <span class="text-xs font-bold text-slate-800">${s.fullName}</span>
+              <span class="text-[11px] text-slate-400">(@${s.username})</span>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">${s.level}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleSelectAllAutoStudents(selectAll) {
+      document.querySelectorAll('.auto-assign-student-cb').forEach(cb => {
+        cb.checked = selectAll;
+      });
+    }
+
+    function getSelectedAutoTypes() {
+      const types = [];
+      if (document.getElementById('autoTypeMCQ')?.checked) types.push('mcq');
+      if (document.getElementById('autoTypeFill')?.checked) types.push('fill');
+      if (document.getElementById('autoTypeTF')?.checked) types.push('true_false');
+      if (document.getElementById('autoTypeArrange')?.checked) types.push('arrange');
+      return types.length > 0 ? types : ['mcq', 'fill', 'true_false', 'arrange'];
+    }
+
+    function handleFastAutoCreateTest() {
+      const title = document.getElementById('autoTestTitle')?.value.trim() || 'Đề Kiểm Tra Tự Động';
+      const level = document.getElementById('autoTestLevel')?.value || 'HSK1';
+      const count = parseInt(document.getElementById('autoTestCount')?.value) || 10;
+      const duration = parseInt(document.getElementById('autoTestDuration')?.value) || 15;
+      const targetTypeRadio = document.querySelector('input[name="autoTargetType"]:checked');
+      const targetType = targetTypeRadio ? targetTypeRadio.value : 'ALL';
+
+      let targetStudentIds = [];
+      if (targetType === 'SPECIFIC') {
+        const checkedBoxes = document.querySelectorAll('.auto-assign-student-cb:checked');
+        targetStudentIds = Array.from(checkedBoxes).map(cb => cb.value);
+        if (targetStudentIds.length === 0) {
+          alert('Vui lòng chọn ít nhất 1 học viên để giao bài test!');
+          return;
+        }
+      }
+
+      const types = getSelectedAutoTypes();
+      const words = getAllWordsForLevel(level);
+      const questions = generateQuestionsFromWords(words, count, types);
+
+      if (questions.length === 0) {
+        alert('Không đủ từ vựng để tạo câu hỏi.');
+        return;
+      }
+
+      db = loadDB();
+      if (!db.tests) db.tests = [];
+      const newTest = {
+        id: 'test_' + Date.now(),
+        title: title,
+        level: level,
+        durationMinutes: duration,
+        targetType: targetType,
+        targetStudentIds: targetStudentIds,
+        createdAt: new Date().toISOString().split('T')[0],
+        questions: questions
+      };
+
+      db.tests.unshift(newTest);
+      saveDB(db);
+
+      if (supabaseClient) {
+        supabaseClient.from('chinese_tests').insert([{
+          id: newTest.id,
+          title: newTest.title,
+          level: newTest.level,
+          duration_minutes: newTest.durationMinutes,
+          questions: [
+            { _testMeta: { targetType: newTest.targetType, targetStudentIds: newTest.targetStudentIds } },
+            ...newTest.questions
+          ]
+        }]).then(() => console.log('Auto test synced to Supabase Cloud!'));
+      }
+
+      document.getElementById('modalHost').innerHTML = '';
+      showToast(`🎉 Đã tự động tạo và phát hành đề "${title}" (${questions.length} câu)!`, '🚀');
+      renderApp();
+    }
+
+    function handleAutoCreateAndReviewInEditor() {
+      const title = document.getElementById('autoTestTitle')?.value.trim() || 'Đề Kiểm Tra Tự Động';
+      const level = document.getElementById('autoTestLevel')?.value || 'HSK1';
+      const count = parseInt(document.getElementById('autoTestCount')?.value) || 10;
+      const duration = parseInt(document.getElementById('autoTestDuration')?.value) || 15;
+      const types = getSelectedAutoTypes();
+      const words = getAllWordsForLevel(level);
+      const questions = generateQuestionsFromWords(words, count, types);
+
+      // Open manual editor
+      openCreateTestModal();
+
+      // Pre-fill fields
+      const titleEl = document.getElementById('newTestTitle');
+      if (titleEl) titleEl.value = title;
+      const levelEl = document.getElementById('newTestLevel');
+      if (levelEl) levelEl.value = level;
+      const durEl = document.getElementById('newTestDuration');
+      if (durEl) durEl.value = duration;
+
+      // Fill questions into container
+      const container = document.getElementById('questionsBuilderContainer');
+      if (container) {
+        container.innerHTML = '';
+        questions.forEach((q, idx) => {
+          insertQuestionObjectToBuilder(container, q, idx + 1);
+        });
+        const qCountEl = document.getElementById('testQCount');
+        if (qCountEl) qCountEl.textContent = questions.length;
+      }
+
+      showToast(`✨ Đã sinh ${questions.length} câu hỏi vào trình soạn thảo!`, '📝');
+    }
+
+    function insertQuestionObjectToBuilder(container, q, num) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = renderQuestionRowHTML(num);
+      const row = tempDiv.firstElementChild;
+      container.appendChild(row);
+
+      const typeSelect = row.querySelector('.q-type-select');
+      if (typeSelect) {
+        typeSelect.value = q.type;
+        handleQTypeChange(typeSelect);
+      }
+
+      const promptInput = row.querySelector('.q-prompt');
+      if (promptInput) promptInput.value = q.prompt || '';
+
+      if (q.type === 'mcq') {
+        const opts = q.options || [];
+        if (row.querySelector('.q-opt-a')) row.querySelector('.q-opt-a').value = opts[0] || '';
+        if (row.querySelector('.q-opt-b')) row.querySelector('.q-opt-b').value = opts[1] || '';
+        if (row.querySelector('.q-opt-c')) row.querySelector('.q-opt-c').value = opts[2] || '';
+        if (row.querySelector('.q-opt-d')) row.querySelector('.q-opt-d').value = opts[3] || '';
+        if (row.querySelector('.q-answer')) row.querySelector('.q-answer').value = q.answer || '';
+      } else if (q.type === 'fill') {
+        if (row.querySelector('.q-hint')) row.querySelector('.q-hint').value = q.hint || '';
+        if (row.querySelector('.q-answer')) row.querySelector('.q-answer').value = q.answer || '';
+      } else if (q.type === 'true_false') {
+        const tfSelect = row.querySelector('.q-tf-select');
+        if (tfSelect) tfSelect.value = q.answer || '对 (Đúng)';
+      } else if (q.type === 'arrange') {
+        const parts = q.parts || (q.answer ? q.answer.split(' ') : []);
+        if (row.querySelector('.q-arrange-parts')) row.querySelector('.q-arrange-parts').value = parts.join(' / ');
+        if (row.querySelector('.q-answer')) row.querySelector('.q-answer').value = q.answer || '';
+      }
+    }
+
+    function autoGenerateQuestionsIntoForm() {
+      const levelEl = document.getElementById('newTestLevel');
+      const level = levelEl ? levelEl.value : 'HSK1';
+      const words = getAllWordsForLevel(level);
+      const questions = generateQuestionsFromWords(words, 5, ['mcq', 'fill', 'true_false', 'arrange']);
+      
+      const container = document.getElementById('questionsBuilderContainer');
+      if (!container) return;
+
+      // If existing rows have only 1 row and prompt is empty, remove it
+      const existingRows = container.querySelectorAll('.q-builder-item');
+      if (existingRows.length === 1) {
+        const firstPrompt = existingRows[0].querySelector('.q-prompt')?.value.trim();
+        if (!firstPrompt) {
+          container.innerHTML = '';
+        }
+      }
+
+      const startIdx = container.querySelectorAll('.q-builder-item').length;
+      questions.forEach((q, i) => {
+        insertQuestionObjectToBuilder(container, q, startIdx + i + 1);
+      });
+
+      const total = container.querySelectorAll('.q-builder-item').length;
+      const countEl = document.getElementById('testQCount');
+      if (countEl) countEl.textContent = total;
+
+      showToast(`✨ Đã tự động sinh thêm 5 câu hỏi chuẩn ${level} vào form!`, '🎉');
+    }
+
+    function studentGeneratePracticeTest() {
+      if (!currentUser) return;
+      const level = currentUser.level || 'HSK1';
+      const words = getAllWordsForLevel(level);
+      if (!words || words.length === 0) {
+        alert('Không tìm thấy từ vựng để tạo đề thi thử.');
+        return;
+      }
+      const testId = 'practice_' + Date.now();
+      const testNum = Math.floor(1000 + Math.random() * 9000);
+      const questions = generateQuestionsFromWords(words, 10, ['mcq', 'fill', 'true_false', 'arrange']);
+
+      const practiceTest = {
+        id: testId,
+        title: `Đề Thi Thử Tự Luyện ${level} (#${testNum})`,
+        level: level,
+        durationMinutes: 15,
+        targetType: 'SPECIFIC',
+        targetStudentIds: [currentUser.id],
+        isPractice: true,
+        createdAt: new Date().toISOString().split('T')[0],
+        questions: questions
+      };
+
+      db = loadDB();
+      if (!db.tests) db.tests = [];
+      db.tests.unshift(practiceTest);
+      saveDB(db);
+
+      if (supabaseClient) {
+        supabaseClient.from('chinese_tests').insert([{
+          id: practiceTest.id,
+          title: practiceTest.title,
+          level: practiceTest.level,
+          duration_minutes: practiceTest.durationMinutes,
+          questions: [
+            { _testMeta: { targetType: practiceTest.targetType, targetStudentIds: practiceTest.targetStudentIds, isPractice: true } },
+            ...practiceTest.questions
+          ]
+        }]).then(() => console.log('Practice test synced to Supabase!'));
+      }
+
+      showToast(`🎉 Đã tạo đề tự luyện 10 câu cho cấp độ ${level}!`, '🎲');
+
+      if (confirm(`Đề thi thử ${level} (10 câu, 15 phút) đã sẵn sàng!\nBạn có muốn bắt đầu làm bài ngay bây giờ không?`)) {
+        startTest(practiceTest);
+      } else {
+        renderApp();
+      }
+    }
+
+    // ==========================================
+    // 8.2 AUTO-SOLVE TEST LOGIC (AI HELPER)
+    // ==========================================
+    function autoSolveCurrentTest() {
+      if (!activeTestInstance) return;
+      const t = activeTestInstance.test;
+      if (!confirm(`Bạn có muốn tự động điền toàn bộ đáp án chính xác cho ${t.questions.length} câu hỏi của bài thi này không?`)) {
+        return;
+      }
+      t.questions.forEach((q, i) => {
+        autoSolveQuestionAt(q, i);
+      });
+      showToast(`🤖 AI đã tự động điền đáp án chuẩn cho toàn bộ ${t.questions.length} câu!`, '✨');
+      renderApp();
+    }
+
+    function autoSolveSingleQuestionUI() {
+      if (!activeTestInstance) return;
+      const i = activeTestInstance.currentIndex;
+      const q = activeTestInstance.test.questions[i];
+      autoSolveQuestionAt(q, i);
+      showToast(`💡 Đã tự động điền đáp án chuẩn cho câu ${i + 1}!`, '✨');
+      renderApp();
+    }
+
+    function autoSolveQuestionAt(q, idx) {
+      if (q.type === 'mcq') {
+        activeTestInstance.userAnswers[idx] = q.answer;
+      } else if (q.type === 'fill') {
+        activeTestInstance.userAnswers[idx] = q.answer;
+      } else if (q.type === 'true_false') {
+        activeTestInstance.userAnswers[idx] = q.answer;
+      } else if (q.type === 'arrange') {
+        if (q.answer) {
+          const parts = q.answer.split(' ').filter(Boolean);
+          if (parts.length > 1) {
+            activeTestInstance.userAnswers[idx] = parts.join(' ');
+          } else if (q.parts && q.parts.length > 0) {
+            activeTestInstance.userAnswers[idx] = q.parts.join(' ');
+          } else {
+            activeTestInstance.userAnswers[idx] = q.answer;
+          }
+        } else {
+          activeTestInstance.userAnswers[idx] = q.answer;
+        }
+      } else {
+        activeTestInstance.userAnswers[idx] = q.answer;
+      }
     }
 
     function viewSubmissionDetail(subId) {
