@@ -348,14 +348,26 @@
         }
 
         if (testsRes.data && testsRes.data.length > 0) {
-          db.tests = testsRes.data.map(t => ({
-            id: t.id,
-            title: t.title,
-            level: t.level,
-            durationMinutes: t.duration_minutes,
-            questions: t.questions,
-            createdAt: t.created_at
-          }));
+          db.tests = testsRes.data.map(t => {
+            let questions = t.questions || [];
+            let targetType = t.target_type || 'LEVEL';
+            let targetStudentIds = t.target_student_ids || [];
+            if (questions.length > 0 && questions[0] && questions[0]._testMeta) {
+              targetType = questions[0]._testMeta.targetType || targetType;
+              targetStudentIds = questions[0]._testMeta.targetStudentIds || targetStudentIds;
+              questions = questions.slice(1);
+            }
+            return {
+              id: t.id,
+              title: t.title,
+              level: t.level,
+              durationMinutes: t.duration_minutes,
+              targetType: targetType,
+              targetStudentIds: targetStudentIds,
+              questions: questions,
+              createdAt: t.created_at
+            };
+          });
         }
 
         if (subsRes.data) {
@@ -673,6 +685,16 @@
         u.rate = 0.85;
         window.speechSynthesis.speak(u);
       }
+    }
+
+    function normalizePinyin(text) {
+      if (!text) return '';
+      return text.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ü/g, 'v')
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
     }
 
     // ==========================================
@@ -1029,9 +1051,20 @@
               return `
                 <div class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-rose-400 transition-all card-hover space-y-3">
                   <div class="flex items-start justify-between gap-2">
-                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
-                      ${t.level}
-                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
+                        ${t.level}
+                      </span>
+                      ${t.targetType === 'SPECIFIC' && t.targetStudentIds && t.targetStudentIds.length > 0 ? `
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          🎯 Chỉ định ${t.targetStudentIds.length} học viên
+                        </span>
+                      ` : `
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                          👥 Tất cả ${t.level}
+                        </span>
+                      `}
+                    </div>
                     <span class="text-xs font-semibold text-slate-400">⏱️ ${t.durationMinutes} phút</span>
                   </div>
                   <div>
@@ -1127,8 +1160,13 @@
       // Re-fetch current user latest state
       currentUser = db.users.find(u => u.id === currentUser.id) || currentUser;
 
-      // Filter tests assigned to this student (either matching their HSK level or assigned to ALL)
-      const myAssignedTests = (db.tests || []).filter(t => t.level === currentUser.level || t.level === 'ALL');
+      // Filter tests assigned to this student (specific designated students or whole level)
+      const myAssignedTests = (db.tests || []).filter(t => {
+        if (t.targetType === 'SPECIFIC' && Array.isArray(t.targetStudentIds) && t.targetStudentIds.length > 0) {
+          return t.targetStudentIds.includes(currentUser.id);
+        }
+        return t.level === currentUser.level || t.level === 'ALL';
+      });
       const mySubmissions = (db.submissions || []).filter(s => s.studentId === currentUser.id);
 
       const levelColors = {
@@ -1445,7 +1483,7 @@
           <div class="glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/20 space-y-6">
             <div class="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
               <span>Câu hỏi ${activeTestInstance.currentIndex + 1} / ${totalQ}</span>
-              <span class="text-rose-600">${q.type === 'mcq' ? 'Trắc nghiệm A B C D' : q.type === 'fill' ? 'Điền từ vào chỗ trống' : 'Sắp xếp câu'}</span>
+              <span class="text-rose-600">${q.type === 'mcq' ? 'Trắc nghiệm A B C D' : q.type === 'fill' ? 'Điền từ vào chỗ trống' : q.type === 'true_false' ? 'Phán đoán Đúng / Sai (对/错)' : 'Sắp xếp câu'}</span>
             </div>
 
             <!-- PROMPT -->
@@ -1459,6 +1497,7 @@
             <div class="pt-2">
               ${q.type === 'mcq' ? renderTestMCQOptions(q) : ''}
               ${q.type === 'fill' ? renderTestFillBlank(q) : ''}
+              ${q.type === 'true_false' ? renderTestTrueFalse(q) : ''}
               ${q.type === 'arrange' ? renderTestArrangeWords(q) : ''}
             </div>
 
@@ -1550,6 +1589,27 @@
       `;
     }
 
+    function renderTestTrueFalse(q) {
+      const selected = activeTestInstance.userAnswers[activeTestInstance.currentIndex] || '';
+      const opts = [
+        { val: '对 (Đúng)', key: '对', label: '对 (Đúng)', icon: '✅' },
+        { val: '错 (Sai)', key: '错', label: '错 (Sai)', icon: '❌' }
+      ];
+      return `
+        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+          ${opts.map(opt => {
+            const isSel = selected === opt.val || selected === opt.key;
+            return `
+              <button onclick="selectTestAnswer('${opt.val}')" class="p-6 rounded-2xl border-2 font-black text-base flex flex-col items-center justify-center gap-2 transition-all card-hover ${isSel ? (opt.key === '对' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md ring-4 ring-emerald-100 scale-102' : 'border-rose-500 bg-rose-50 text-rose-700 shadow-md ring-4 ring-rose-100 scale-102') : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}">
+                <span class="text-4xl">${opt.icon}</span>
+                <span class="text-lg">${opt.label}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
     function selectTestAnswer(val) {
       activeTestInstance.userAnswers[activeTestInstance.currentIndex] = val;
       renderApp();
@@ -1593,8 +1653,21 @@
 
       t.questions.forEach((q, i) => {
         const userAns = (activeTestInstance.userAnswers[i] || '').trim().toLowerCase();
-        const correctAns = q.answer.trim().toLowerCase();
-        const isRight = userAns === correctAns;
+        const correctAns = (q.answer || '').trim().toLowerCase();
+        let isRight = false;
+
+        if (q.type === 'true_false') {
+          const uClean = userAns.startsWith('对') ? '对' : (userAns.startsWith('错') ? '错' : userAns);
+          const cClean = correctAns.startsWith('对') ? '对' : (correctAns.startsWith('错') ? '错' : correctAns);
+          isRight = uClean === cClean;
+        } else if (q.type === 'fill') {
+          isRight = (userAns === correctAns) || (normalizePinyin(userAns) === normalizePinyin(correctAns));
+        } else if (q.type === 'arrange') {
+          isRight = userAns.replace(/\s+/g, '') === correctAns.replace(/\s+/g, '');
+        } else {
+          isRight = userAns === correctAns;
+        }
+
         if (isRight) correct++;
         details.push({
           qIndex: i,
@@ -1899,18 +1972,18 @@
       arenaCurrentGame = gameId;
       renderApp();
       const canvas = document.getElementById('arenaCanvas');
+      if (!canvas) return;
       if (gameId === 'flashcard') initArenaFlashcard(canvas);
       else if (gameId === 'quiz') initArenaQuiz(canvas);
+      else if (gameId === 'matching') initArenaMatching(canvas);
+      else if (gameId === 'typing') initArenaTyping(canvas);
       else if (gameId === 'speed') initArenaSpeed(canvas);
       else if (gameId === 'listen') initArenaListen(canvas);
+      else if (gameId === 'fillblank') initArenaFillBlank(canvas);
+      else if (gameId === 'memory') initArenaMemory(canvas);
       else {
-        // Fallback demo for remaining modes
-        canvas.innerHTML = `
-          <div class="glass-card rounded-3xl p-10 text-center space-y-4">
-            <h2 class="text-xl font-bold">Chế độ đang tải...</h2>
-            <button onclick="arenaCurrentGame = null; renderApp();" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs">Về Menu Game</button>
-          </div>
-        `;
+        arenaCurrentGame = null;
+        renderApp();
       }
     }
 
@@ -2140,6 +2213,478 @@
       draw();
     }
 
+    // GAME: MATCHING (NỐI TỪ HÁN - NGHĨA)
+    function initArenaMatching(canvas) {
+      if (!arenaWords || arenaWords.length === 0) return;
+      const poolSize = Math.min(5, arenaWords.length);
+      const selectedWords = [...arenaWords].sort(() => 0.5 - Math.random()).slice(0, poolSize);
+      
+      const hanziList = [...selectedWords].sort(() => 0.5 - Math.random());
+      const meaningList = [...selectedWords].sort(() => 0.5 - Math.random());
+
+      let selectedHanzi = null;
+      let selectedMeaning = null;
+      const matchedWords = new Set();
+      let score = 0;
+
+      function render() {
+        canvas.innerHTML = `
+          <div class="max-w-2xl mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="text-slate-400 hover:text-rose-600">&larr; Thoát Game</button>
+              <div class="flex items-center gap-4">
+                <span class="text-slate-500 font-semibold">Đã nối: <b class="text-emerald-600">${matchedWords.size} / ${selectedWords.length}</b></span>
+                <span class="text-amber-500 font-black text-sm">⭐ ${score}</span>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20 space-y-4">
+              <div class="text-center">
+                <h3 class="text-lg font-black text-slate-800">🔗 Nối Cặp Chữ Hán & Ý Nghĩa</h3>
+                <p class="text-xs text-slate-400 mt-1">Bấm chọn 1 ô chữ Hán và 1 ô ý nghĩa tương ứng để ghép đôi</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 sm:gap-6 pt-2">
+                <!-- LEFT: HANZI -->
+                <div class="space-y-2.5">
+                  <div class="text-xs font-bold text-center text-slate-400 uppercase tracking-wider mb-2">Chữ Hán (汉字)</div>
+                  ${hanziList.map(item => {
+                    const isMatched = matchedWords.has(item.hanzi);
+                    const isSelected = selectedHanzi === item.hanzi;
+                    return `
+                      <button onclick="window._onSelectHanziMatch('${item.hanzi}')" 
+                        ${isMatched ? 'disabled' : ''}
+                        class="w-full p-3.5 sm:p-4 rounded-2xl border-2 font-black transition-all flex items-center justify-between text-left
+                          ${isMatched 
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-400 opacity-40 cursor-not-allowed line-through' 
+                            : isSelected 
+                              ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-md ring-4 ring-rose-100 scale-102' 
+                              : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 shadow-sm'}">
+                        <span class="text-xl sm:text-2xl">${item.hanzi}</span>
+                        <span class="text-xs font-semibold text-rose-500">${arenaShowPinyin ? item.pinyin : ''}</span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+
+                <!-- RIGHT: MEANING -->
+                <div class="space-y-2.5">
+                  <div class="text-xs font-bold text-center text-slate-400 uppercase tracking-wider mb-2">Ý Nghĩa Tiếng Việt</div>
+                  ${meaningList.map(item => {
+                    const isMatched = matchedWords.has(item.hanzi);
+                    const isSelected = selectedMeaning === item.meaning;
+                    return `
+                      <button onclick="window._onSelectMeaningMatch('${item.meaning}')" 
+                        ${isMatched ? 'disabled' : ''}
+                        class="w-full p-3.5 sm:p-4 rounded-2xl border-2 font-bold text-sm transition-all flex items-center justify-center text-center min-h-[58px]
+                          ${isMatched 
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-400 opacity-40 cursor-not-allowed line-through' 
+                            : isSelected 
+                              ? 'border-rose-500 bg-rose-50 text-rose-700 shadow-md ring-4 ring-rose-100 scale-102' 
+                              : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 shadow-sm'}">
+                        <span>${item.meaning}</span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+
+            ${matchedWords.size === selectedWords.length ? `
+              <div class="glass-card rounded-3xl p-6 text-center space-y-4 pop-in border border-emerald-200 bg-emerald-50/50">
+                <div class="text-4xl">🎉</div>
+                <h4 class="text-lg font-black text-emerald-800">Xuất Sắc! Bạn Đã Nối Đúng Tất Cả Cặp Từ!</h4>
+                <div class="flex items-center justify-center gap-3">
+                  <button onclick="initArenaMatching(document.getElementById('arenaCanvas'))" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all">
+                    🔄 Chơi Ván Mới
+                  </button>
+                  <button onclick="arenaCurrentGame = null; renderApp();" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs transition-all">
+                    Về Menu Game
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      window._onSelectHanziMatch = (hanzi) => {
+        if (matchedWords.has(hanzi)) return;
+        selectedHanzi = hanzi;
+        speakChinese(hanzi);
+        checkMatch();
+        render();
+      };
+
+      window._onSelectMeaningMatch = (meaning) => {
+        selectedMeaning = meaning;
+        checkMatch();
+        render();
+      };
+
+      function checkMatch() {
+        if (!selectedHanzi || !selectedMeaning) return;
+        const target = selectedWords.find(w => w.hanzi === selectedHanzi);
+        if (target && target.meaning === selectedMeaning) {
+          matchedWords.add(selectedHanzi);
+          playSound('correct');
+          showFloatScore('+10', 'text-emerald-500');
+          score += 10;
+          selectedHanzi = null;
+          selectedMeaning = null;
+          if (matchedWords.size === selectedWords.length) {
+            playSound('victory');
+          }
+        } else {
+          playSound('wrong');
+          const prevH = selectedHanzi;
+          const prevM = selectedMeaning;
+          setTimeout(() => {
+            if (selectedHanzi === prevH && selectedMeaning === prevM) {
+              selectedHanzi = null;
+              selectedMeaning = null;
+              render();
+            }
+          }, 600);
+        }
+      }
+
+      render();
+    }
+
+    // GAME: TYPING (LUYỆN GÕ PINYIN)
+    function initArenaTyping(canvas) {
+      if (!arenaWords || arenaWords.length === 0) return;
+      const words = [...arenaWords].sort(() => 0.5 - Math.random());
+      let idx = 0;
+      let score = 0;
+      let streak = 0;
+      let lastResult = null;
+
+      function render() {
+        const w = words[idx];
+        canvas.innerHTML = `
+          <div class="max-w-md mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="hover:text-rose-600">&larr; Thoát Game</button>
+              <div class="flex items-center gap-3">
+                <span>🔥 Chuỗi: <b class="text-rose-600">${streak}</b></span>
+                <span>⭐ Điểm: <b class="text-amber-500">${score}</b></span>
+                <span>${idx + 1} / ${words.length}</span>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl border border-white/20 space-y-4">
+              <div class="text-xs font-bold text-slate-400 uppercase">Nhìn chữ Hán & gõ đúng Pinyin:</div>
+              <div class="hanzi-large font-black text-slate-800">${w.hanzi}</div>
+              <div class="text-base font-bold text-emerald-600">Nghĩa: ${w.meaning}</div>
+              ${w.type ? `<div class="text-xs text-slate-400">(${w.type})</div>` : ''}
+              <button onclick="speakChinese('${w.hanzi}')" class="text-2xl hover:scale-110 transition-transform">🔊</button>
+            </div>
+
+            <div class="space-y-3">
+              <form onsubmit="window._submitPinyin(event)" class="space-y-3">
+                <input type="text" id="arenaPinyinInput" autofocus autocomplete="off" autocapitalize="off" spellcheck="false"
+                       placeholder="Nhập pinyin (VD: ni hao hoặc nǐ hǎo)..." 
+                       class="w-full p-4 rounded-2xl border-2 border-slate-200 text-center font-bold text-lg text-slate-800 focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all">
+                <div class="flex gap-2">
+                  <button type="button" onclick="window._skipPinyin()" class="flex-1 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-all">
+                    Bỏ qua
+                  </button>
+                  <button type="submit" class="flex-2 py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-xs shadow-md hover:opacity-95 transition-all">
+                    Kiểm Tra &rarr;
+                  </button>
+                </div>
+              </form>
+
+              ${lastResult ? `
+                <div class="p-4 rounded-2xl text-center text-xs font-bold pop-in ${lastResult.isCorrect ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+                  ${lastResult.isCorrect ? '🎉 Chính xác!' : `❌ Chưa đúng! Đáp án chuẩn: <b>${lastResult.answer}</b>`}
+                </div>
+              ` : `
+                <p class="text-[11px] text-center text-slate-400 font-medium">
+                  💡 Chấp nhận cả gõ không dấu (như: <b>${w.pinyin.normalize('NFD').replace(/[\u0300-\u036f]/g, '')}</b>) hoặc có dấu!
+                </p>
+              `}
+            </div>
+          </div>
+        `;
+
+        setTimeout(() => {
+          const input = document.getElementById('arenaPinyinInput');
+          if (input) input.focus();
+        }, 100);
+      }
+
+      window._submitPinyin = (e) => {
+        e.preventDefault();
+        const input = document.getElementById('arenaPinyinInput');
+        if (!input) return;
+        const val = input.value.trim().toLowerCase();
+        const w = words[idx];
+        if (!val) return;
+
+        const targetPinyin = w.pinyin.toLowerCase().trim();
+        const isCorrect = (val === targetPinyin) || (normalizePinyin(val) === normalizePinyin(targetPinyin));
+
+        if (isCorrect) {
+          playSound('correct');
+          showFloatScore('+10', 'text-emerald-500');
+          score += 10;
+          streak++;
+          lastResult = { isCorrect: true, answer: w.pinyin };
+        } else {
+          playSound('wrong');
+          streak = 0;
+          lastResult = { isCorrect: false, answer: w.pinyin };
+        }
+        render();
+
+        setTimeout(() => {
+          lastResult = null;
+          if (idx < words.length - 1) {
+            idx++;
+            render();
+          } else {
+            alert(`Hoàn thành thử thách gõ Pinyin! Điểm số: ${score}`);
+            arenaCurrentGame = null;
+            renderApp();
+          }
+        }, isCorrect ? 900 : 1800);
+      };
+
+      window._skipPinyin = () => {
+        const w = words[idx];
+        lastResult = { isCorrect: false, answer: w.pinyin };
+        render();
+        setTimeout(() => {
+          lastResult = null;
+          if (idx < words.length - 1) {
+            idx++;
+            render();
+          } else {
+            arenaCurrentGame = null;
+            renderApp();
+          }
+        }, 1200);
+      };
+
+      render();
+    }
+
+    // GAME: FILL BLANK (ĐIỀN TỪ VÀO CÂU)
+    function initArenaFillBlank(canvas) {
+      if (!arenaWords || arenaWords.length === 0) return;
+      const words = [...arenaWords].sort(() => 0.5 - Math.random());
+      let idx = 0;
+      let score = 0;
+
+      function render() {
+        const w = words[idx];
+        let sentence = w.exampleCN || '';
+        if (sentence && sentence.includes(w.hanzi)) {
+          sentence = sentence.replace(w.hanzi, '【 _____ 】');
+        } else {
+          sentence = `句子中包含【 _____ 】。`;
+        }
+        const meaning = w.exampleVN || w.meaning;
+
+        const others = arenaWords.filter(x => x.hanzi !== w.hanzi).sort(() => 0.5 - Math.random()).slice(0, 3);
+        const options = [w, ...others].sort(() => 0.5 - Math.random());
+
+        canvas.innerHTML = `
+          <div class="max-w-lg mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="hover:text-rose-600">&larr; Thoát Game</button>
+              <span>⭐ Điểm: <b class="text-amber-500">${score}</b></span>
+              <span>${idx + 1} / ${words.length}</span>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl border border-white/20 space-y-4">
+              <div class="text-xs font-bold text-slate-400 uppercase">Chọn từ Hán tự thích hợp điền vào chỗ trống:</div>
+              <div class="text-2xl sm:text-3xl font-black text-slate-800 leading-relaxed font-mono">
+                ${sentence}
+              </div>
+              <div class="text-sm font-semibold text-slate-500">
+                Dịch nghĩa: <span class="italic text-slate-700 font-bold">${meaning}</span>
+              </div>
+              <button onclick="speakChinese('${w.exampleCN || w.hanzi}')" class="text-2xl hover:scale-110 transition-transform">🔊</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" id="fillBlankOptions">
+              ${options.map(opt => `
+                <button onclick="window._answerFillBlank('${opt.hanzi}', '${w.hanzi}', this)" 
+                  class="p-4 rounded-2xl bg-white border-2 border-slate-200 font-bold text-slate-800 hover:border-rose-400 card-hover transition-all text-center flex flex-col items-center justify-center gap-1">
+                  <span class="text-xl font-black">${opt.hanzi}</span>
+                  <span class="text-xs font-semibold text-rose-500">${arenaShowPinyin ? opt.pinyin : ''}</span>
+                  <span class="text-[11px] text-slate-400">${opt.meaning}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      window._answerFillBlank = (chosen, correct, btn) => {
+        const isRight = chosen === correct;
+        if (isRight) {
+          btn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+          playSound('correct');
+          showFloatScore('+10', 'text-emerald-500');
+          score += 10;
+          speakChinese(words[idx].exampleCN || correct);
+        } else {
+          btn.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-700', 'shake');
+          playSound('wrong');
+        }
+
+        setTimeout(() => {
+          if (idx < words.length - 1) {
+            idx++;
+            render();
+          } else {
+            alert(`Hoàn thành thử thách điền từ! Điểm số: ${score}`);
+            arenaCurrentGame = null;
+            renderApp();
+          }
+        }, isRight ? 1000 : 1500);
+      };
+
+      render();
+    }
+
+    // GAME: MEMORY (TRÍ NHỚ LẬT THẺ)
+    function initArenaMemory(canvas) {
+      if (!arenaWords || arenaWords.length === 0) return;
+      const numPairs = Math.min(6, arenaWords.length);
+      const picked = [...arenaWords].sort(() => 0.5 - Math.random()).slice(0, numPairs);
+
+      const rawCards = [];
+      picked.forEach((w, i) => {
+        rawCards.push({
+          pairId: i,
+          type: 'hanzi',
+          text: w.hanzi,
+          subText: arenaShowPinyin ? w.pinyin : '',
+          meaning: w.meaning
+        });
+        rawCards.push({
+          pairId: i,
+          type: 'meaning',
+          text: w.meaning,
+          subText: arenaShowPinyin ? w.pinyin : '',
+          hanzi: w.hanzi
+        });
+      });
+
+      const cards = rawCards.sort(() => 0.5 - Math.random()).map((c, idx) => ({
+        ...c,
+        id: idx,
+        isFlipped: false,
+        isMatched: false
+      }));
+
+      let flipped = [];
+      let moves = 0;
+      let matchedCount = 0;
+      let isLocked = false;
+
+      function render() {
+        canvas.innerHTML = `
+          <div class="max-w-2xl mx-auto space-y-6">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+              <button onclick="arenaCurrentGame = null; renderApp();" class="hover:text-rose-600">&larr; Thoát Game</button>
+              <div class="flex items-center gap-4">
+                <span>🎮 Lượt lật: <b class="text-slate-800">${moves}</b></span>
+                <span>🎯 Cặp đúng: <b class="text-emerald-600">${matchedCount} / ${numPairs}</b></span>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-xl border border-white/20">
+              <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                ${cards.map((c, i) => `
+                  <div onclick="window._flipMemoryCard(${i})" 
+                    class="min-h-[90px] sm:min-h-[110px] rounded-2xl flex flex-col items-center justify-center p-3 text-center cursor-pointer transition-all duration-300 transform select-none
+                      ${c.isMatched 
+                        ? 'bg-emerald-50 border-2 border-emerald-400 text-emerald-800 scale-95 shadow-sm' 
+                        : c.isFlipped 
+                          ? 'bg-white border-2 border-rose-400 text-slate-800 shadow-md scale-102' 
+                          : 'bg-gradient-to-br from-rose-600 to-amber-600 text-white font-black text-2xl shadow-md hover:scale-105 active:scale-95'}">
+                    ${(c.isFlipped || c.isMatched) ? `
+                      <div class="${c.type === 'hanzi' ? 'text-2xl font-black' : 'text-sm font-bold leading-tight'}">
+                        ${c.text}
+                      </div>
+                      ${c.subText ? `<div class="text-[10px] font-semibold text-rose-500 mt-1">${c.subText}</div>` : ''}
+                    ` : `
+                      <span class="text-2xl">🀄</span>
+                    `}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            ${matchedCount === numPairs ? `
+              <div class="glass-card rounded-3xl p-6 text-center space-y-4 pop-in border border-emerald-200 bg-emerald-50/50">
+                <div class="text-4xl">🏆</div>
+                <h4 class="text-lg font-black text-emerald-800">Trí Nhớ Siêu Phàm! Bạn Đã Mở Hết Sau ${moves} Lượt!</h4>
+                <div class="flex items-center justify-center gap-3">
+                  <button onclick="initArenaMemory(document.getElementById('arenaCanvas'))" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all">
+                    🔄 Chơi Ván Mới
+                  </button>
+                  <button onclick="arenaCurrentGame = null; renderApp();" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs transition-all">
+                    Về Menu Game
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      window._flipMemoryCard = (idx) => {
+        if (isLocked) return;
+        const card = cards[idx];
+        if (card.isFlipped || card.isMatched) return;
+
+        card.isFlipped = true;
+        flipped.push(card);
+        if (card.type === 'hanzi') speakChinese(card.text);
+        render();
+
+        if (flipped.length === 2) {
+          moves++;
+          isLocked = true;
+          const [c1, c2] = flipped;
+
+          if (c1.pairId === c2.pairId && c1.type !== c2.type) {
+            setTimeout(() => {
+              c1.isMatched = true;
+              c2.isMatched = true;
+              matchedCount++;
+              playSound('correct');
+              flipped = [];
+              isLocked = false;
+              if (matchedCount === numPairs) {
+                playSound('victory');
+              }
+              render();
+            }, 500);
+          } else {
+            setTimeout(() => {
+              playSound('wrong');
+              c1.isFlipped = false;
+              c2.isFlipped = false;
+              flipped = [];
+              isLocked = false;
+              render();
+            }, 900);
+          }
+        }
+      };
+
+      render();
+    }
+
     // ==========================================
     // 11. MODALS: ADD STUDENT, CREATE TEST, WORD BANK
     // ==========================================
@@ -2296,24 +2841,29 @@
 
     // CREATE TEST MODAL
     function openCreateTestModal() {
+      db = loadDB();
       const modal = document.getElementById('modalHost');
       modal.innerHTML = `
         <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-white/20 pop-in space-y-6 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 class="text-lg font-black text-slate-800">Soạn Đề Mini Test Cho Học Viên</h3>
+              <div>
+                <h3 class="text-lg font-black text-slate-800">Soạn Đề Mini Test Cho Học Viên</h3>
+                <p class="text-xs text-slate-500">Thiết kế bài kiểm tra theo chuẩn đề thi HSK</p>
+              </div>
               <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-5">
+              <!-- GENERAL SETTINGS -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tên Bài Test</label>
-                  <input type="text" id="newTestTitle" placeholder="Ví dụ: Mini Test 15 phút HSK 1..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold">
+                  <input type="text" id="newTestTitle" placeholder="Ví dụ: Mini Test 15 phút HSK 1..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-rose-500">
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cấp Độ HSK</label>
-                  <select id="newTestLevel" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white">
+                  <select id="newTestLevel" onchange="renderAssignStudentChecklist()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white outline-none focus:border-rose-500">
                     <option value="HSK1">HSK 1</option>
                     <option value="HSK2">HSK 2</option>
                     <option value="HSK3">HSK 3</option>
@@ -2323,108 +2873,333 @@
 
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Thời Gian Làm Bài (Phút)</label>
-                <input type="number" id="newTestDuration" value="10" min="1" max="60" class="w-32 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold">
+                <input type="number" id="newTestDuration" value="10" min="1" max="60" class="w-32 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-rose-500">
               </div>
 
-              <!-- QUESTIONS BUILDER CONTAINER -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-xs font-bold text-slate-500 uppercase">Danh Sách Câu Hỏi (<span id="testQCount">1</span>)</label>
-                  <button type="button" onclick="addNewQuestionRow()" class="text-xs font-bold text-rose-600 hover:underline">+ Thêm Câu Hỏi</button>
+              <!-- ASSIGNMENT TARGET (TẤT CẢ VS CHỈ ĐỊNH HỌC VIÊN CỤ THỂ) -->
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <label class="block text-xs font-bold text-slate-600 uppercase">Đối Tượng Giao Bài Kiểm Tra</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-rose-300 transition-all">
+                    <input type="radio" name="testTargetType" value="ALL" checked onchange="toggleTestTargetMode('ALL')" class="text-rose-600 focus:ring-rose-500">
+                    <div>
+                      <div class="text-xs font-bold text-slate-800">Tất cả học viên cấp độ này</div>
+                      <div class="text-[11px] text-slate-400">Tất cả học viên thuộc HSK đã chọn sẽ thấy bài test</div>
+                    </div>
+                  </label>
+
+                  <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:border-rose-300 transition-all">
+                    <input type="radio" name="testTargetType" value="SPECIFIC" onchange="toggleTestTargetMode('SPECIFIC')" class="text-rose-600 focus:ring-rose-500">
+                    <div>
+                      <div class="text-xs font-bold text-slate-800">Chỉ định học viên cụ thể</div>
+                      <div class="text-[11px] text-slate-400">Chọn đích danh học viên cần làm bài</div>
+                    </div>
+                  </label>
                 </div>
-                <div id="questionsBuilderContainer" class="space-y-3">
-                  <!-- Row 1 -->
-                  <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 q-builder-item">
-                    <div class="flex items-center justify-between text-xs font-bold text-slate-400">
-                      <span>Câu #1</span>
-                      <select class="q-type-select text-xs font-bold px-2 py-1 rounded-lg border border-slate-200">
-                        <option value="mcq">Trắc nghiệm A B C D</option>
-                        <option value="fill">Điền từ vào chỗ trống</option>
-                      </select>
+
+                <!-- SPECIFIC STUDENTS CHECKLIST -->
+                <div id="assignSpecificContainer" class="hidden pt-2 border-t border-slate-200/60 space-y-2">
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <span>Danh sách học viên:</span>
+                    <div class="space-x-2">
+                      <button type="button" onclick="toggleSelectAllStudents(true)" class="text-rose-600 hover:underline">Chọn tất cả</button>
+                      <span>•</span>
+                      <button type="button" onclick="toggleSelectAllStudents(false)" class="text-slate-400 hover:underline">Bỏ chọn</button>
                     </div>
-                    <input type="text" placeholder="Nội dung câu hỏi (VD: Từ '你好' có nghĩa là gì?)" class="q-prompt w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
-                    <div class="grid grid-cols-2 gap-2">
-                      <input type="text" placeholder="Đáp án A" class="q-opt-a px-3 py-2 rounded-xl border border-slate-200 text-xs">
-                      <input type="text" placeholder="Đáp án B" class="q-opt-b px-3 py-2 rounded-xl border border-slate-200 text-xs">
-                      <input type="text" placeholder="Đáp án C" class="q-opt-c px-3 py-2 rounded-xl border border-slate-200 text-xs">
-                      <input type="text" placeholder="Đáp án D" class="q-opt-d px-3 py-2 rounded-xl border border-slate-200 text-xs">
-                    </div>
-                    <input type="text" placeholder="Đáp án ĐÚNG CHÍNH XÁC (Trùng với 1 trong các đáp án)" class="q-answer w-full px-3 py-2 rounded-xl border-2 border-emerald-400 text-xs font-bold text-emerald-800">
+                  </div>
+                  <div id="assignStudentChecklist" class="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                    <!-- Populated dynamically -->
                   </div>
                 </div>
               </div>
 
-              <button onclick="handleSaveNewTest()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold text-sm shadow-md hover:opacity-95 transition-all">
+              <!-- QUESTIONS BUILDER CONTAINER -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="text-xs font-bold text-slate-600 uppercase">Danh Sách Câu Hỏi (<span id="testQCount">1</span>)</label>
+                    <p class="text-[11px] text-slate-400">Hỗ trợ trắc nghiệm A B C D, Điền từ, Đúng/Sai (对/错), Sắp xếp câu</p>
+                  </div>
+                  <button type="button" onclick="addNewQuestionRow()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition-all flex items-center gap-1">
+                    <span>➕</span> Thêm Câu Hỏi
+                  </button>
+                </div>
+
+                <div id="questionsBuilderContainer" class="space-y-3">
+                  ${renderQuestionRowHTML(1)}
+                </div>
+              </div>
+
+              <button onclick="handleSaveNewTest()" class="w-full py-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-sm shadow-lg shadow-rose-500/25 hover:opacity-95 transition-all">
                 Lưu & Phát Hành Đề Test Cho Học Viên &rarr;
               </button>
             </div>
           </div>
         </div>
       `;
+
+      renderAssignStudentChecklist();
+    }
+
+    function renderQuestionRowHTML(count) {
+      return `
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 q-builder-item" data-index="${count}">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-500 pb-2 border-b border-slate-200">
+            <span class="q-header-label">Câu #${count}</span>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] text-slate-400 font-semibold">Loại câu hỏi:</label>
+              <select class="q-type-select text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white outline-none focus:border-rose-500" onchange="handleQTypeChange(this)">
+                <option value="mcq">Trắc nghiệm A B C D</option>
+                <option value="fill">Điền từ vào chỗ trống (Không chọn A B C D)</option>
+                <option value="true_false">Phán đoán Đúng / Sai (对/错 - Chuẩn HSK)</option>
+                <option value="arrange">Sắp xếp cụm từ thành câu (连词成句 - Chuẩn HSK)</option>
+              </select>
+              ${count > 1 ? `
+                <button type="button" onclick="removeQuestionRow(this)" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-bold text-xs" title="Xoá câu hỏi này">🗑️</button>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- PROMPT INPUT -->
+          <div>
+            <input type="text" placeholder="Nội dung câu hỏi (VD: Từ '你好' có nghĩa là gì?)" class="q-prompt w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-rose-500 bg-white">
+          </div>
+
+          <!-- TYPE 1: MCQ OPTIONS CONTAINER -->
+          <div class="grid grid-cols-2 gap-2 q-mcq-box">
+            <input type="text" placeholder="Đáp án A" class="q-opt-a px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            <input type="text" placeholder="Đáp án B" class="q-opt-b px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            <input type="text" placeholder="Đáp án C" class="q-opt-c px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            <input type="text" placeholder="Đáp án D" class="q-opt-d px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+          </div>
+
+          <!-- TYPE 2: FILL HINT CONTAINER (NO ABCD) -->
+          <div class="q-fill-box hidden space-y-1.5">
+            <input type="text" placeholder="Gợi ý điền từ (Tùy chọn: VD pinyin 'nǐ hǎo' hoặc nghĩa tiếng Việt)" class="q-hint w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-600">
+            <p class="text-[11px] text-amber-600 font-medium">💡 Gợi ý: Hãy đặt dấu <b>_____</b> trong nội dung câu hỏi để biểu thị vị trí cần điền.</p>
+          </div>
+
+          <!-- TYPE 3: TRUE/FALSE SELECT CONTAINER -->
+          <div class="q-tf-box hidden">
+            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Đáp Án Đúng Khẳng Định:</label>
+            <select class="q-tf-select w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800">
+              <option value="对 (Đúng)">✅ 对 (Đúng) - Khẳng định này chính xác</option>
+              <option value="错 (Sai)">❌ 错 (Sai) - Khẳng định này không đúng</option>
+            </select>
+          </div>
+
+          <!-- TYPE 4: ARRANGE WORDS CONTAINER -->
+          <div class="q-arrange-box hidden space-y-1.5">
+            <input type="text" placeholder="Nhập các mảnh từ, ngăn cách bởi dấu gạch chéo '/' (VD: 我 / 喜欢 / 吃 / 苹果 / 。)" class="q-arrange-parts w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white">
+            <p class="text-[11px] text-slate-400">Hệ thống sẽ xáo trộn các từ để học viên bấm ghép theo đúng ngữ pháp.</p>
+          </div>
+
+          <!-- ANSWER INPUT (SHOWN FOR MCQ, FILL, ARRANGE) -->
+          <div class="q-answer-box">
+            <input type="text" placeholder="Đáp án ĐÚNG CHÍNH XÁC (Trùng với 1 trong 4 đáp án trên)" class="q-answer w-full px-3.5 py-2.5 rounded-xl border-2 border-emerald-400 text-xs font-bold text-emerald-800 bg-white outline-none focus:ring-2 focus:ring-emerald-200">
+          </div>
+        </div>
+      `;
+    }
+
+    function handleQTypeChange(selectEl) {
+      const row = selectEl.closest('.q-builder-item');
+      if (!row) return;
+      const type = selectEl.value;
+
+      const mcqBox = row.querySelector('.q-mcq-box');
+      const fillBox = row.querySelector('.q-fill-box');
+      const tfBox = row.querySelector('.q-tf-box');
+      const arrangeBox = row.querySelector('.q-arrange-box');
+      const answerBox = row.querySelector('.q-answer-box');
+      const promptInput = row.querySelector('.q-prompt');
+      const answerInput = row.querySelector('.q-answer');
+
+      mcqBox.classList.add('hidden');
+      fillBox.classList.add('hidden');
+      tfBox.classList.add('hidden');
+      arrangeBox.classList.add('hidden');
+      answerBox.classList.remove('hidden');
+
+      if (type === 'mcq') {
+        mcqBox.classList.remove('hidden');
+        promptInput.placeholder = "Nội dung câu hỏi (VD: Từ '你好' có nghĩa là gì?)";
+        answerInput.placeholder = "Đáp án ĐÚNG CHÍNH XÁC (Trùng với 1 trong 4 đáp án trên)";
+      } else if (type === 'fill') {
+        fillBox.classList.remove('hidden');
+        promptInput.placeholder = "Câu có chỗ trống (Dùng _____ biểu thị chỗ trống, VD: 我想去 _____ 旅游。)";
+        answerInput.placeholder = "Từ cần điền chính xác vào chỗ trống (VD: 中国)";
+      } else if (type === 'true_false') {
+        tfBox.classList.remove('hidden');
+        answerBox.classList.add('hidden'); // Choice is made in q-tf-select
+        promptInput.placeholder = "Khẳng định cần phán đoán Đúng / Sai (VD: '苹果' có nghĩa là quả táo.)";
+      } else if (type === 'arrange') {
+        arrangeBox.classList.remove('hidden');
+        promptInput.placeholder = "Yêu cầu hoặc nghĩa tiếng Việt (VD: Hãy ghép thành câu: 'Tôi thích ăn táo.')";
+        answerInput.placeholder = "Câu hoàn chỉnh chính xác (VD: 我喜欢吃苹果。)";
+      }
+    }
+
+    function toggleTestTargetMode(mode) {
+      const container = document.getElementById('assignSpecificContainer');
+      if (!container) return;
+      if (mode === 'SPECIFIC') {
+        container.classList.remove('hidden');
+        renderAssignStudentChecklist();
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function renderAssignStudentChecklist() {
+      const listEl = document.getElementById('assignStudentChecklist');
+      if (!listEl) return;
+      const levelEl = document.getElementById('newTestLevel');
+      const selectedLevel = levelEl ? levelEl.value : 'HSK1';
+
+      db = loadDB();
+      const students = (db.users || []).filter(u => u.role === 'student' && (u.level === selectedLevel || selectedLevel === 'ALL'));
+
+      if (students.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-xs text-slate-400 italic py-2 text-center bg-white rounded-xl border border-slate-100">
+            Chưa có học viên nào ở cấp độ ${selectedLevel}.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = students.map(s => `
+        <label class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200 hover:border-rose-400 cursor-pointer transition-all">
+          <div class="flex items-center gap-2.5">
+            <input type="checkbox" value="${s.id}" class="assign-student-cb rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
+            <div>
+              <span class="text-xs font-bold text-slate-800">${s.fullName}</span>
+              <span class="text-[11px] text-slate-400">(@${s.username})</span>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">${s.level}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleSelectAllStudents(selectAll) {
+      document.querySelectorAll('.assign-student-cb').forEach(cb => {
+        cb.checked = selectAll;
+      });
     }
 
     function addNewQuestionRow() {
       const container = document.getElementById('questionsBuilderContainer');
       const count = container.querySelectorAll('.q-builder-item').length + 1;
-      const div = document.createElement('div');
-      div.className = 'p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 q-builder-item';
-      div.innerHTML = `
-        <div class="flex items-center justify-between text-xs font-bold text-slate-400">
-          <span>Câu #${count}</span>
-          <select class="q-type-select text-xs font-bold px-2 py-1 rounded-lg border border-slate-200">
-            <option value="mcq">Trắc nghiệm A B C D</option>
-            <option value="fill">Điền từ vào chỗ trống</option>
-          </select>
-        </div>
-        <input type="text" placeholder="Nội dung câu hỏi..." class="q-prompt w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
-        <div class="grid grid-cols-2 gap-2">
-          <input type="text" placeholder="Đáp án A" class="q-opt-a px-3 py-2 rounded-xl border border-slate-200 text-xs">
-          <input type="text" placeholder="Đáp án B" class="q-opt-b px-3 py-2 rounded-xl border border-slate-200 text-xs">
-          <input type="text" placeholder="Đáp án C" class="q-opt-c px-3 py-2 rounded-xl border border-slate-200 text-xs">
-          <input type="text" placeholder="Đáp án D" class="q-opt-d px-3 py-2 rounded-xl border border-slate-200 text-xs">
-        </div>
-        <input type="text" placeholder="Đáp án ĐÚNG CHÍNH XÁC" class="q-answer w-full px-3 py-2 rounded-xl border-2 border-emerald-400 text-xs font-bold text-emerald-800">
-      `;
-      container.appendChild(div);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = renderQuestionRowHTML(count);
+      container.appendChild(tempDiv.firstElementChild);
       document.getElementById('testQCount').textContent = count;
+    }
+
+    function removeQuestionRow(btn) {
+      const row = btn.closest('.q-builder-item');
+      if (!row) return;
+      const container = document.getElementById('questionsBuilderContainer');
+      row.remove();
+      const remainingRows = container.querySelectorAll('.q-builder-item');
+      remainingRows.forEach((r, idx) => {
+        const header = r.querySelector('.q-header-label');
+        if (header) header.textContent = `Câu #${idx + 1}`;
+      });
+      document.getElementById('testQCount').textContent = remainingRows.length;
     }
 
     function handleSaveNewTest() {
       const title = document.getElementById('newTestTitle').value.trim();
       const level = document.getElementById('newTestLevel').value;
       const duration = parseInt(document.getElementById('newTestDuration').value) || 10;
+      const targetTypeRadio = document.querySelector('input[name="testTargetType"]:checked');
+      const targetType = targetTypeRadio ? targetTypeRadio.value : 'ALL';
 
       if (!title) {
         alert('Vui lòng nhập tên bài test!');
         return;
       }
 
+      let targetStudentIds = [];
+      if (targetType === 'SPECIFIC') {
+        const checkedBoxes = document.querySelectorAll('.assign-student-cb:checked');
+        targetStudentIds = Array.from(checkedBoxes).map(cb => cb.value);
+        if (targetStudentIds.length === 0) {
+          alert('Bạn đang chọn "Chỉ định học viên cụ thể", vui lòng tích chọn ít nhất 1 học viên để giao bài!');
+          return;
+        }
+      }
+
       const rows = document.querySelectorAll('.q-builder-item');
       const questions = [];
 
       rows.forEach((r, idx) => {
-        const prompt = r.querySelector('.q-prompt').value.trim();
-        const ans = r.querySelector('.q-answer').value.trim();
         const type = r.querySelector('.q-type-select').value;
-        const optA = r.querySelector('.q-opt-a').value.trim();
-        const optB = r.querySelector('.q-opt-b').value.trim();
-        const optC = r.querySelector('.q-opt-c').value.trim();
-        const optD = r.querySelector('.q-opt-d').value.trim();
+        const prompt = r.querySelector('.q-prompt').value.trim();
+        const ansInput = r.querySelector('.q-answer');
+        const ans = ansInput ? ansInput.value.trim() : '';
 
-        if (prompt && ans) {
+        if (!prompt) return;
+
+        if (type === 'mcq') {
+          const optA = r.querySelector('.q-opt-a').value.trim();
+          const optB = r.querySelector('.q-opt-b').value.trim();
+          const optC = r.querySelector('.q-opt-c').value.trim();
+          const optD = r.querySelector('.q-opt-d').value.trim();
+          if (ans) {
+            questions.push({
+              id: 'q_' + (idx + 1),
+              type: 'mcq',
+              prompt: prompt,
+              options: [optA || ans, optB || 'Đáp án B', optC || 'Đáp án C', optD || 'Đáp án D'],
+              answer: ans,
+              explanation: 'Đáp án chuẩn: ' + ans
+            });
+          }
+        } else if (type === 'fill') {
+          const hint = r.querySelector('.q-hint') ? r.querySelector('.q-hint').value.trim() : '';
+          if (ans) {
+            questions.push({
+              id: 'q_' + (idx + 1),
+              type: 'fill',
+              prompt: prompt,
+              hint: hint,
+              answer: ans,
+              explanation: 'Đáp án chuẩn cần điền: ' + ans
+            });
+          }
+        } else if (type === 'true_false') {
+          const tfSelect = r.querySelector('.q-tf-select');
+          const tfVal = tfSelect ? tfSelect.value : '对 (Đúng)';
           questions.push({
             id: 'q_' + (idx + 1),
-            type: type,
+            type: 'true_false',
             prompt: prompt,
-            options: [optA || ans, optB || 'Đáp án 2', optC || 'Đáp án 3', optD || 'Đáp án 4'],
-            answer: ans,
-            explanation: 'Đáp án chuẩn: ' + ans
+            answer: tfVal,
+            explanation: 'Khẳng định này là ' + tfVal
           });
+        } else if (type === 'arrange') {
+          const partsInput = r.querySelector('.q-arrange-parts');
+          const partsRaw = partsInput ? partsInput.value.trim() : '';
+          const parts = partsRaw.split('/').map(p => p.trim()).filter(Boolean);
+          if (ans && parts.length > 0) {
+            questions.push({
+              id: 'q_' + (idx + 1),
+              type: 'arrange',
+              prompt: prompt,
+              parts: parts.sort(() => 0.5 - Math.random()),
+              answer: ans.replace(/\s+/g, ''),
+              explanation: 'Câu hoàn chỉnh: ' + ans
+            });
+          }
         }
       });
 
       if (questions.length === 0) {
-        alert('Vui lòng nhập ít nhất 1 câu hỏi hợp lệ!');
+        alert('Vui lòng nhập ít nhất 1 câu hỏi hợp lệ và điền đầy đủ đáp án đúng!');
         return;
       }
 
@@ -2435,8 +3210,8 @@
         title: title,
         level: level,
         durationMinutes: duration,
-        targetType: 'LEVEL',
-        targetLevel: level,
+        targetType: targetType,
+        targetStudentIds: targetStudentIds,
         createdAt: new Date().toISOString().split('T')[0],
         questions: questions
       };
@@ -2450,8 +3225,11 @@
           title: newTest.title,
           level: newTest.level,
           duration_minutes: newTest.durationMinutes,
-          questions: newTest.questions
-        }]).then(() => console.log('Test created in Supabase Cloud!'));
+          questions: [
+            { _testMeta: { targetType: newTest.targetType, targetStudentIds: newTest.targetStudentIds } },
+            ...newTest.questions
+          ]
+        }]).then(() => console.log('Test created and synced to Supabase Cloud!'));
       }
 
       document.getElementById('modalHost').innerHTML = '';
@@ -2478,7 +3256,49 @@
       db = loadDB();
       const t = db.tests.find(x => x.id === id);
       if (!t) return;
-      alert(`Đề thi: ${t.title}\nCấp độ: ${t.level}\nSố câu: ${t.questions.length}\nThời gian: ${t.durationMinutes} phút`);
+
+      const modal = document.getElementById('modalHost');
+      modal.innerHTML = `
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl border border-white/20 pop-in space-y-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 class="text-lg font-black text-slate-800">${t.title}</h3>
+                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                  <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">${t.level}</span>
+                  <span>⏱️ ${t.durationMinutes} phút</span>
+                  <span>•</span>
+                  <span>${t.targetType === 'SPECIFIC' ? `🎯 Chỉ định ${t.targetStudentIds?.length || 0} học viên` : `👥 Tất cả ${t.level}`}</span>
+                </div>
+              </div>
+              <button onclick="document.getElementById('modalHost').innerHTML=''" class="text-slate-400 hover:text-rose-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3">
+              ${t.questions.map((q, i) => `
+                <div class="p-3.5 rounded-xl border border-slate-200 bg-white text-xs space-y-2">
+                  <div class="flex items-center justify-between font-bold text-slate-400">
+                    <span>Câu ${i + 1}</span>
+                    <span class="text-rose-600 font-semibold">${q.type === 'mcq' ? 'Trắc nghiệm A B C D' : q.type === 'fill' ? 'Điền từ' : q.type === 'true_false' ? 'Đúng/Sai (对/错)' : 'Sắp xếp câu'}</span>
+                  </div>
+                  <div class="font-bold text-slate-800 text-sm">${q.prompt}</div>
+                  ${q.type === 'mcq' && q.options ? `
+                    <div class="grid grid-cols-2 gap-1.5 text-slate-600">
+                      ${q.options.map((opt, oi) => `<div>${['A', 'B', 'C', 'D'][oi]}. ${opt}</div>`).join('')}
+                    </div>
+                  ` : ''}
+                  ${q.hint ? `<div class="text-slate-500 italic">💡 Gợi ý: ${q.hint}</div>` : ''}
+                  <div class="pt-1.5 border-t border-slate-100 text-emerald-700 font-bold">
+                    Đáp án đúng: ${q.answer}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <button onclick="document.getElementById('modalHost').innerHTML=''" class="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-xs">Đóng</button>
+          </div>
+        </div>
+      `;
     }
 
     function viewSubmissionDetail(subId) {
